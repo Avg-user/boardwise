@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 type PlaceholderPageProps = {
-  name: 'issues' | 'login' | 'case' | 'lawyers' | 'hr' | 'firm'
+  name: 'lawyers' | 'hr' | 'firm'
 }
 
 // Stands in for each screen until the real page replaces it in App.tsx.

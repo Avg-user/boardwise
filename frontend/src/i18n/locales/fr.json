@@ -3,6 +3,11 @@
     "name": "Boardwise",
     "home": "Accueil de Boardwise"
   },
+  "common": {
+    "loading": "Chargement…",
+    "serverError": "Une erreur s'est produite et l'action n'a pas abouti. Vérifiez votre connexion et réessayez.",
+    "opensInNewTab": "(s'ouvre dans un nouvel onglet)"
+  },
   "layout": {
     "skipToContent": "Aller au contenu principal",
     "mainNavigation": "Navigation principale",
@@ -11,24 +16,90 @@
   },
   "nav": {
     "issues": "Mes dossiers",
-    "lawyers": "Trouver un avocat"
+    "lawyers": "Trouver un avocat",
+    "hr": "Conseil des RH",
+    "firm": "Profil du cabinet"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signingIn": "Connexion…",
+    "signOut": "Se déconnecter",
+    "signInDescription": "Connectez-vous pour voir vos dossiers enregistrés.",
+    "signUpDescription": "Votre compte garde vos dossiers privés et réunis au même endroit.",
+    "createAccount": "Créer un compte",
+    "creatingAccount": "Création du compte…",
+    "username": "Nom d'utilisateur",
+    "usernameHint": "Vous n'avez pas besoin d'utiliser votre vrai nom.",
+    "usernameRequired": "Entrez un nom d'utilisateur.",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "invalidCredentials": "Ce nom d'utilisateur ou ce mot de passe est incorrect. Vérifiez-les et réessayez.",
+    "passwordTooShort": "Utilisez au moins {{count}} caractères.",
+    "passwordMismatch": "Ces mots de passe ne correspondent pas.",
+    "signupUnavailable": "La création de comptes n'est pas encore offerte. Si vous avez un compte de démonstration, connectez-vous avec celui-ci.",
+    "noAccount": "Vous n'avez pas de compte?",
+    "haveAccount": "Vous avez déjà un compte?",
+    "roleQuestion": "À qui ce compte est-il destiné?",
+    "roles": {
+      "victim": "Une personne salariée",
+      "victimHint": "Obtenez de l'aide pour comprendre un problème au travail.",
+      "hr": "Un conseil des RH",
+      "hrHint": "Consultez les signalements anonymes et évaluez les descriptions de poste.",
+      "lawFirm": "Un cabinet d'avocats",
+      "lawFirmHint": "Offrez votre expertise aux personnes qui cherchent de l'aide."
+    }
+  },
+  "cases": {
+    "title": "Mes dossiers",
+    "description": "Suivez chaque problème au travail dans un seul espace privé.",
+    "empty": "Vous n'avez encore aucun dossier.",
+    "updated": "Mis à jour le {{date}}",
+    "closed": "Fermé"
+  },
+  "case": {
+    "back": "Retour à Mes dossiers",
+    "timeline": "Chronologie",
+    "timelineEmpty": "Votre chronologie est vide pour l'instant.",
+    "nextSteps": "Ce que vous pouvez faire",
+    "nextStepsEmpty": "Votre liste est vide pour l'instant.",
+    "progress": "{{done}} sur {{total}} terminées",
+    "suggestions": "Suggestions de l'assistant IA",
+    "addStep": "Ajouter",
+    "addStepNamed": "Ajouter à la liste : {{title}}",
+    "readOnly": "Ce dossier a été partagé avec vous. Vous pouvez le consulter, mais pas le modifier.",
+    "tabs": {
+      "chat": "Discussion",
+      "timeline": "Chronologie",
+      "steps": "Prochaines étapes"
+    }
+  },
+  "chat": {
+    "aiLabel": "Assistant IA",
+    "logLabel": "Conversation avec l'assistant IA",
+    "intro": "Bonjour, je suis un assistant IA, et non un avocat ni une personne. Dites-moi ce qui se passe au travail et je vous donnerai des renseignements généraux sur les droits au travail en Alberta et les prochaines étapes possibles.",
+    "messageLabel": "Votre message",
+    "placeholder": "Décrivez ce qui s'est passé. Vous n'avez pas besoin d'utiliser de vrais noms.",
+    "send": "Envoyer",
+    "thinking": "Réflexion…",
+    "sources": "Sources",
+    "notice": "L'IA peut faire des erreurs. Il s'agit de renseignements généraux et non d'un avis juridique. Vérifiez les sources ou adressez-vous à un professionnel.",
+    "sendFailed": "Votre message n'a pas été envoyé. Il est de retour dans la zone de texte pour que vous puissiez réessayer."
+  },
+  "crisis": {
+    "title": "Êtes-vous en danger immédiat?",
+    "call911": "Appelez le 911 maintenant",
+    "supportIntro": "Vous pouvez aussi obtenir du soutien gratuit en tout temps :",
+    "suicideLine": "Ligne d'aide en cas de crise de suicide (appel ou texto)",
+    "mentalHealthLine": "Ligne d'aide en santé mentale de l'Alberta",
+    "familyViolenceLine": "Ligne d'information sur la violence familiale de l'Alberta (appel ou texto)",
+    "supportLine": "211 Alberta, pour les services de soutien locaux (appel ou texto)",
+    "notSent": "Nous n'avons pas envoyé ce message à l'assistant IA. Vous pouvez revenir à cette discussion quand vous serez prêt.",
+    "hide": "Masquer ce message"
   },
   "placeholder": {
     "notice": "Cet écran est en cours de création."
   },
   "pages": {
-    "issues": {
-      "title": "Mes dossiers",
-      "description": "Suivez chaque problème au travail dans un seul espace privé."
-    },
-    "login": {
-      "title": "Connexion",
-      "description": "Connectez-vous pour voir vos dossiers enregistrés."
-    },
-    "case": {
-      "title": "Détails du dossier",
-      "description": "Discutez avec l'assistant IA, organisez votre chronologie et consultez les prochaines étapes possibles."
-    },
     "lawyers": {
       "title": "Trouver un avocat",
       "description": "Parcourez les cabinets d'avocats par domaine d'expertise et choisissez qui contacter."
