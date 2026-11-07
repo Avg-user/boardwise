@@ -22,7 +22,7 @@ cd frontend && npm run dev                                 # http://localhost:51
 
 Health check: http://localhost:8000/api/health/ — admin: http://localhost:8000/admin/
 
-LLM chat service: set `OPENROUTER_API_KEY` in `.env`, run `docker compose up backend --build`, then try it at http://localhost:8001/docs
+AI chat: set `OPENROUTER_API_KEY` in `.env`, then `POST /api/cases/<id>/conversations/<id>/messages/` with `{"content": "..."}` (try it in Swagger at /api/docs/). Load the province law references for retrieval with `python manage.py ingest_laws`.
 
 ## Layout
 - `backend/config` — settings, urls, celery

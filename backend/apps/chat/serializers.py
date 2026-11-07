@@ -15,3 +15,8 @@ class ConversationSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = ["id", "created_at"]
         read_only_fields = fields
+
+
+class SendMessageSerializer(serializers.Serializer):
+    content = serializers.CharField(max_length=8000, trim_whitespace=True)
+    province = serializers.RegexField(r"^[A-Z]{2}$", required=False)
