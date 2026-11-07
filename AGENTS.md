@@ -69,12 +69,13 @@ cd backend
 .venv/bin/python manage.py seed_demo                   # add --reset to rebuild; refuses unless DEBUG=True
 .venv/bin/python manage.py runserver
 ```
-Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`. The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm`.
+Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed). The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request.
 
 Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down before deploying).
 
 ### Auth
 - DRF token auth (header `Authorization: Token <key>`) plus session auth.
+- `POST /api/auth/register/` `{username, password, role, preferred_language}` → `{token, user}` (same as login). Uses Django's password validators.
 - `POST /api/auth/login/` → `{token, user}`. The `user` object includes `role`, which the frontend uses to route.
 - `POST /api/auth/logout/` deletes the token.
 - `GET/PATCH /api/auth/me/` (PATCH can change only `preferred_language`).
@@ -93,7 +94,10 @@ Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down befo
   - `LawSource` (province, slug, title, source_url, content_hash).
   - `LawChunk` (one section; section_ref, heading breadcrumb, text, `embedding` pgvector, `search_vector`).
   - `LawReference` (graph edge between chunks, e.g. "subject to section 23").
-- `lawfirms` and `hr` have no models yet.
+- `lawfirms`:
+  - `LawFirmProfile` (one per law-firm user): about, practice areas, languages, provinces, fees (free consultation, hourly range, flat fee, contingency, sliding scale, legal aid), public contact, `law_society_number`, `is_verified`, `accepting_clients`. `LawFirmProfile.objects.listed()` = verified + accepting + has name and description.
+  - `MatchRequest` (case, firm, worker's note, status pending/accepted/declined/withdrawn/ended, linked `CaseShare`).
+- `hr` has no models yet.
 
 ### Endpoints
 All endpoints require authentication.
@@ -114,6 +118,13 @@ All endpoints require authentication.
 - Access behaviour, enforced in `apps/cases/permissions.py` (`CaseScopedMixin`):
   - Strangers get **404**, not 403.
   - Grantees are read-only: a write gets 403.
+
+### Law firm marketplace
+- Firms sign up, then fill in `/api/lawfirms/me/` (GET, PUT creates, PATCH). Staff verify them in the Django admin (action "Mark as verified"). A firm can't verify itself, and changing `law_society_number` removes verification.
+- Workers browse `GET /api/lawfirms/` (listed firms only; filters `area`, `language`, `free_consultation`, `q`). The public serializer never includes the law society number.
+- A worker asks to connect: `POST /api/cases/<case_pk>/matches/ {firm, message}` (case owner only; listed firms only; one open request per case and firm). `DELETE` withdraws a pending request or ends an accepted one, which revokes the share.
+- The firm sees `GET /api/lawfirms/me/requests/`: only the note and status. `case_id`/`case_title` appear only while an accepted share is active. `POST .../requests/<id>/accept/` creates the `CaseShare` (verified firms only); `decline/` doesn't.
+- **A firm must never see case data before accepting.** Revoking a share through `shares/` also ends its match. Only the owner can list a case's matches, so firms never see which other firms were asked.
 
 ### Chat
 - `GET/POST /api/cases/<case_pk>/conversations/<id>/messages/`. POST `{content, province?, language?}` is owner-only and synchronous. It returns `{user_message, reply}`:
@@ -141,14 +152,14 @@ All endpoints require authentication.
 - Chat env vars: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_DATA_COLLECTION` (`deny`|`allow`), `OPENROUTER_MAX_RETRIES` (default 4; the SDK retries 429/5xx), `CHAT_DEFAULT_PROVINCE` (default `AB`), `CHAT_HISTORY_LIMIT` (default 40; crisis-flagged messages are never sent to the model), `EMBEDDING_MODEL` (default `openai/text-embedding-3-small`; empty = full-text only), `RAG_TOP_K` (6), `RAG_SEARCH_CONFIG` (`english`).
 
 ### Tests
-`apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback). 52 tests in total. Chat tests mock `llm.chat`; tests must never call the real model.
+`apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback), `apps/lawfirms/tests.py` (registration, profiles, directory, match flow and privacy). Chat tests mock `llm.chat`; tests must never call the real model.
 
 ### Not built yet
 - WebSocket streaming for chat. The frontend (`frontend/src/api/chat.ts`) calls the synchronous endpoint and passes the whole reply to `onDelta` once. Proposed message format:
   - `client → {type:"message", content}`
   - `server → crisis | token(delta) | done(message_id) | error`
 - Celery tasks for document extraction and timeline generation (`TODO(llm)` in `documents/views.py`).
-- Law firm profiles and directory (`/api/lawfirms/`).
+- Firm case statistics, and notifying firms and workers about new requests and answers.
 - HR: anonymous reports and a dashboard that applies a minimum group size.
 - Encrypted file storage.
 - RAG follow-ups: PDF/HTML ingestion for full statutes, a per-province eval set (question → expected section), an HNSW index once the corpus grows, and a French search config for QC.

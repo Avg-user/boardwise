@@ -62,7 +62,9 @@ function SignupPage() {
         preferred_language: i18n.resolvedLanguage ?? 'en',
       })
       queryClient.setQueryData(CURRENT_USER_KEY, created)
-      navigate(getRoleHome(created.role), { replace: true })
+      navigate(created.role === 'law_firm' ? '/firm/profile' : getRoleHome(created.role), {
+        replace: true,
+      })
     } catch (caught) {
       setIsSubmitting(false)
       if (caught instanceof ApiError && (caught.status === 404 || caught.status === 405)) {
