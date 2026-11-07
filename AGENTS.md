@@ -120,7 +120,11 @@ All endpoints require authentication.
   - Crisis check first (`apps/chat/crisis.py`, English and French). If flagged, it saves only the user message with `flagged_crisis=True` and returns `reply: null` plus a plain-text `crisis_resources`. It **skips the model**, and flagged messages are never sent to a model later. The frontend shows its own translated `CrisisBanner`.
   - Otherwise it builds the prompt (`apps/chat/prompts.py`): `system.md` + the law reference, then calls `llm.chat()` with `Write your reply in <language>` and saves both messages. A model failure or empty reply returns 502 and saves **nothing**, so the frontend can safely resend.
   - Retrieval may call the embedding model, so it **must stay after** the crisis check.
-  - **Scope is strict**: the assistant only helps with workplace issues (rights, harassment, safety, documenting incidents, next steps, related support). The rules are in `prompts/system.md`. Off-topic replies are swapped for a fixed English/French refusal by `apps/chat/scope.py` when the model returns `[OFF_TOPIC]` **or** the reply contains code (a check that doesn't rely on the model, because small models don't always comply).
+  - **Scope is strict**: the assistant only helps with workplace issues (rights, harassment, safety, documenting incidents, next steps, related support). Three layers, in `apps/chat/scope.py` and `prompts/system.md`:
+    1. **Before the model**, `is_off_topic_request` refuses obvious requests for code or plain arithmetic with no model call. Messages that mention work (boss, pay, harassment and similar) always go through.
+    2. **In the prompt**, the model is told to reply `[OFF_TOPIC]` for anything else off-topic.
+    3. **After the model**, `is_off_topic` refuses replies with the marker, with code, or offering to write code. A capitalised "Code" (a law's name) and "code of …" never match.
+    All three use the same fixed English/French refusal. The small model ignores layer 2 often, so don't remove 1 or 3.
 
 ### Law reference RAG (`apps/knowledge`)
 - Source docs: `backend/prompts/provinces/<CODE>.md` and `<CODE>/*.md` (Markdown). Only `AB.md` exists so far.

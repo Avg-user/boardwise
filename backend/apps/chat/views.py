@@ -13,7 +13,7 @@ from apps.cases.permissions import CaseScopedMixin
 from . import llm
 from .crisis import CRISIS_RESOURCES, is_crisis
 from .models import Conversation, Message
-from .scope import is_off_topic, refusal
+from .scope import is_off_topic, is_off_topic_request, refusal
 from .prompts import ProvinceNotFound, check_province, system_prompt
 from .serializers import (ConversationSerializer, MessageSerializer, SendMessageResponseSerializer,
                           SendMessageSerializer)
@@ -64,6 +64,16 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
             logger.info("Crisis flagged: conversation=%s message=%s", convo.pk, user_msg.pk)
             return Response({"user_message": MessageSerializer(user_msg).data, "reply": None,
                              "crisis_resources": CRISIS_RESOURCES}, status=status.HTTP_201_CREATED)
+
+        # Obvious off-topic requests are refused without any model call.
+        if is_off_topic_request(content):
+            logger.info("Off-topic request refused before model: conversation=%s", convo.pk)
+            with transaction.atomic():
+                user_msg = Message.objects.create(conversation=convo, role=Message.Role.USER, content=content)
+                reply = Message.objects.create(conversation=convo, role=Message.Role.ASSISTANT,
+                                               content=refusal(language_code))
+            return Response({"user_message": MessageSerializer(user_msg).data,
+                             "reply": MessageSerializer(reply).data}, status=status.HTTP_201_CREATED)
 
         # Retrieval may call the embedding model, so it happens after the crisis check.
         prompt = system_prompt(province, query=content)
