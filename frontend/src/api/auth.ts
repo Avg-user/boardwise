@@ -1,4 +1,3 @@
-import { clearLocalChatData } from './chat.ts'
 import { clearToken, request, setToken } from './client.ts'
 import type { LoginResponse, User, UserRole } from './types.ts'
 
@@ -38,7 +37,6 @@ export async function logout(): Promise<void> {
   } finally {
     // Sign out on this device even if the server can't be reached.
     clearToken()
-    clearLocalChatData()
   }
 }
 

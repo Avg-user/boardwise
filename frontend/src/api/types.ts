@@ -85,6 +85,14 @@ export type ApiMessage = {
   created_at: string
 }
 
+export type SendMessageResponse = {
+  user_message: ApiMessage
+  /** Null when the message was flagged as a crisis. */
+  reply: ApiMessage | null
+  /** Plain-text resources for clients without their own crisis UI. */
+  crisis_resources?: string
+}
+
 // Proposed shapes for the RAG owner to review. The backend doesn't return these yet.
 export type Citation = {
   title: string

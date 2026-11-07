@@ -11,6 +11,10 @@ _PATTERNS = [
     r"\bno reason to live\b", r"\bbetter off dead\b",
     r"\b(he|she|they|someone|boss|manager|coworker)( is| are|'s|'re)? (going to|gonna) (kill|hurt|attack)\b",
     r"\bthreaten(ed|ing)? to (kill|hurt)\b", r"\bin danger\b", r"\bnot safe\b", r"\bafraid for my life\b",
+    # French (the UI is bilingual)
+    r"\bme (tuer|suicider)\b", r"\bsuicid", r"\b(mettre fin|en finir) (à|a) (ma vie|mes jours)\b",
+    r"\bveux mourir\b", r"\bme faire du mal\b", r"\ben danger\b", r"\bpas en s(é|e)curit(é|e)\b",
+    r"\bmenac(é|e|ée)s? de (mort|me tuer)\b", r"\b(va|vont) me (tuer|frapper|faire du mal)\b",
 ]
 _RE = re.compile("|".join(_PATTERNS), re.IGNORECASE)
 
