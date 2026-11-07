@@ -72,3 +72,8 @@ class CaseShareViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateMode
 
     def perform_destroy(self, instance):
         instance.revoke()
+        # A share created by accepting a marketplace request ends that match too.
+        instance_request = getattr(instance, "match_request", None)
+        if instance_request is not None and instance_request.status == "accepted":
+            instance_request.respond("ended")
+            instance_request.save()

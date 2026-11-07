@@ -7,6 +7,7 @@ from rest_framework.routers import DefaultRouter
 from apps.cases.views import CaseShareViewSet, CaseViewSet, TimelineEntryViewSet
 from apps.chat.views import ConversationViewSet
 from apps.documents.views import DocumentViewSet
+from apps.lawfirms.views import CaseMatchViewSet, FirmRequestViewSet, LawFirmViewSet, my_profile
 from apps.tasks.views import TaskViewSet
 
 
@@ -16,6 +17,11 @@ def health(request):
 
 router = DefaultRouter()
 router.register("cases", CaseViewSet, basename="case")
+router.register("lawfirms", LawFirmViewSet, basename="lawfirm")
+
+firm_router = DefaultRouter()
+firm_router.register("requests", FirmRequestViewSet, basename="firm-requests")
+firm_router.include_root_view = False
 
 case_router = DefaultRouter()
 case_router.register("timeline", TimelineEntryViewSet, basename="case-timeline")
@@ -23,12 +29,16 @@ case_router.register("tasks", TaskViewSet, basename="case-tasks")
 case_router.register("documents", DocumentViewSet, basename="case-documents")
 case_router.register("shares", CaseShareViewSet, basename="case-shares")
 case_router.register("conversations", ConversationViewSet, basename="case-conversations")
+case_router.register("matches", CaseMatchViewSet, basename="case-matches")
 case_router.include_root_view = False
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health),
     path("api/auth/", include("apps.accounts.urls")),
+    # Before the router, so "me" is never read as a firm id.
+    path("api/lawfirms/me/", my_profile),
+    path("api/lawfirms/me/", include(firm_router.urls)),
     path("api/", include(router.urls)),
     path("api/cases/<int:case_pk>/", include(case_router.urls)),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

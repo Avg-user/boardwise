@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .serializers import LoginResponseSerializer, LoginSerializer, UserSerializer
+from .serializers import LoginResponseSerializer, LoginSerializer, RegisterSerializer, UserSerializer
 
 
 @extend_schema(request=LoginSerializer, responses=LoginResponseSerializer, auth=[])
@@ -38,3 +38,15 @@ def me(request):
         s.save()
         return Response(s.data)
     return Response(UserSerializer(request.user).data)
+
+
+@extend_schema(request=RegisterSerializer, responses={201: LoginResponseSerializer}, auth=[])
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def register(request):
+    """Create an account and sign in. Law firms must still be verified before they are listed."""
+    s = RegisterSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    user = s.save()
+    token = Token.objects.create(user=user)
+    return Response({"token": token.key, "user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)

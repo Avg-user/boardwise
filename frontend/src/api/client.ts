@@ -40,7 +40,7 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   /** Sent as a JSON body. */
   json?: unknown
   /** Sent as multipart form data. The browser sets the boundary header. */
