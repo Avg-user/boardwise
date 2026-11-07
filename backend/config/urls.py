@@ -1,13 +1,36 @@
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework.routers import DefaultRouter
+
+from apps.cases.views import CaseShareViewSet, CaseViewSet, TimelineEntryViewSet
+from apps.chat.views import ConversationViewSet
+from apps.documents.views import DocumentViewSet
+from apps.tasks.views import TaskViewSet
 
 
 def health(request):
     return JsonResponse({"status": "ok"})
 
 
+router = DefaultRouter()
+router.register("cases", CaseViewSet, basename="case")
+
+case_router = DefaultRouter()
+case_router.register("timeline", TimelineEntryViewSet, basename="case-timeline")
+case_router.register("tasks", TaskViewSet, basename="case-tasks")
+case_router.register("documents", DocumentViewSet, basename="case-documents")
+case_router.register("shares", CaseShareViewSet, basename="case-shares")
+case_router.register("conversations", ConversationViewSet, basename="case-conversations")
+case_router.include_root_view = False
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health),
+    path("api/auth/", include("apps.accounts.urls")),
+    path("api/", include(router.urls)),
+    path("api/cases/<int:case_pk>/", include(case_router.urls)),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 ]
