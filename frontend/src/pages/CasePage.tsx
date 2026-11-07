@@ -77,7 +77,7 @@ function CasePage() {
         </section>
         <div className="case-side">
           <section className="case-pane" data-active={activeTab === 'timeline'}>
-            <TimelinePanel caseId={caseId} />
+            <TimelinePanel caseId={caseId} onSessionSelect={() => setActiveTab('chat')} />
           </section>
           <section className="case-pane" data-active={activeTab === 'steps'}>
             <NextStepsPanel caseId={caseId} canEdit={canEdit} />

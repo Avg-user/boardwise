@@ -64,7 +64,14 @@
     "emptyCta": "Créer votre premier dossier",
     "openHeading": "Ouverts",
     "closedHeading": "Fermés",
-    "eyebrow": "Vos dossiers"
+    "eyebrow": "Vos dossiers",
+    "overviewLabel": "Aperçu de la chronologie",
+    "openIssue": "Ouvrir le dossier"
+  },
+  "timeline": {
+    "chatSession": "Séance de discussion",
+    "viewing": "Affichée",
+    "aiTag": "IA"
   },
   "newCase": {
     "title": "Nouveau dossier",
@@ -110,7 +117,9 @@
     "thinking": "Réflexion…",
     "sources": "Sources",
     "notice": "L'IA peut faire des erreurs. Il s'agit de renseignements généraux et non d'un avis juridique. Vérifiez les sources ou adressez-vous à un professionnel.",
-    "sendFailed": "Votre message n'a pas été envoyé. Il est de retour dans la zone de texte pour que vous puissiez réessayer."
+    "sendFailed": "Votre message n'a pas été envoyé. Il est de retour dans la zone de texte pour que vous puissiez réessayer.",
+    "earlierSession": "Vous consultez une discussion précédente du {{date}}.",
+    "latestSession": "Aller à la discussion la plus récente"
   },
   "crisis": {
     "title": "Êtes-vous en danger immédiat?",

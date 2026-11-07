@@ -64,7 +64,14 @@
     "emptyCta": "Start your first issue",
     "openHeading": "Open",
     "closedHeading": "Closed",
-    "eyebrow": "Your case files"
+    "eyebrow": "Your case files",
+    "overviewLabel": "Timeline overview",
+    "openIssue": "Open issue"
+  },
+  "timeline": {
+    "chatSession": "Chat session",
+    "viewing": "Viewing",
+    "aiTag": "AI"
   },
   "newCase": {
     "title": "New issue",
@@ -110,7 +117,9 @@
     "thinking": "Thinking…",
     "sources": "Sources",
     "notice": "AI can make mistakes. This is general information, not legal advice, so check the sources or talk to a professional.",
-    "sendFailed": "Your message didn't send. It's back in the box so you can try again."
+    "sendFailed": "Your message didn't send. It's back in the box so you can try again.",
+    "earlierSession": "You're viewing an earlier chat from {{date}}.",
+    "latestSession": "Go to the latest chat"
   },
   "crisis": {
     "title": "Are you in immediate danger?",
