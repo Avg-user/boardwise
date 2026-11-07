@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { login } from '../api/auth.ts'
 import { ApiError } from '../api/client.ts'
 import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import WorkplaceScene from '../components/site/WorkplaceScene.tsx'
 import { CURRENT_USER_KEY, queryClient } from '../queryClient.ts'
 
 function LoginPage() {
@@ -42,45 +43,55 @@ function LoginPage() {
   const title = t('auth.signIn')
 
   return (
-    <div className="auth-page">
-      <title>{`${title} · ${t('app.name')}`}</title>
-      <h1>{title}</h1>
-      <p className="page-description">{t('auth.signInDescription')}</p>
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="login-username">{t('auth.username')}</label>
-          <input
-            id="login-username"
-            autoComplete="username"
-            autoCapitalize="none"
-            required
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="login-password">{t('auth.password')}</label>
-          <input
-            id="login-password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="button" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
-        </button>
-      </form>
-      <p className="auth-switch">
-        {t('auth.noAccount')} <Link to="/signup">{t('auth.createAccount')}</Link>
-      </p>
+    <div className="auth-split">
+      <div className="auth-page">
+        <title>{`${title} · ${t('app.name')}`}</title>
+        <p className="eyebrow">{t('auth.eyebrow')}</p>
+        <h1>{title}</h1>
+        <p className="page-description">{t('auth.signInDescription')}</p>
+        <form className="form" onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="login-username">{t('auth.username')}</label>
+            <input
+              id="login-username"
+              autoComplete="username"
+              autoCapitalize="none"
+              required
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="login-password">{t('auth.password')}</label>
+            <input
+              id="login-password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
+          </button>
+        </form>
+        <p className="auth-switch">
+          {t('auth.noAccount')} <Link to="/signup">{t('auth.createAccount')}</Link>
+        </p>
+      </div>
+      <div className="scene-panel">
+        <p className="scene-panel__tagline">
+          {t('auth.taglineStart')} <em>{t('auth.taglineEmphasis')}</em>
+        </p>
+        <WorkplaceScene />
+        <p className="scene-panel__note">{t('auth.taglineNote')}</p>
+      </div>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { listCases } from '../api/cases.ts'
+import { MiniVan } from '../components/site/WorkplaceScene.tsx'
 
 // A simple list so the issue screen is reachable. Step 4 builds this out.
 function CasesPage() {
@@ -19,6 +20,7 @@ function CasesPage() {
   return (
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
+      <p className="eyebrow">{t('cases.eyebrow')}</p>
       <h1>{title}</h1>
       <p className="page-description">{t('cases.description')}</p>
       {isLoading && <p role="status">{t('common.loading')}</p>}
@@ -27,7 +29,12 @@ function CasesPage() {
           {t('common.serverError')}
         </p>
       )}
-      {cases?.length === 0 && <p className="placeholder-notice">{t('cases.empty')}</p>}
+      {cases?.length === 0 && (
+        <div className="empty-state">
+          <MiniVan />
+          <p className="placeholder-notice">{t('cases.empty')}</p>
+        </div>
+      )}
       {cases && cases.length > 0 && (
         <ul className="case-list">
           {cases.map((item) => (
