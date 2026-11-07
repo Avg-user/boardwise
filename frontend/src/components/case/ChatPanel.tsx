@@ -95,6 +95,7 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
     try {
       const id = conversationId ?? (await createConversation(caseId)).id
       await sendMessage({
+        caseId,
         conversationId: id,
         content,
         language: i18n.resolvedLanguage ?? 'en',

@@ -116,10 +116,11 @@ All endpoints require authentication.
   - Grantees are read-only: a write gets 403.
 
 ### Chat
-- `GET/POST /api/cases/<case_pk>/conversations/<id>/messages/`. POST `{content, province?}` is owner-only and synchronous:
-  - Crisis check first (`apps/chat/crisis.py`). If flagged, it saves both messages with `flagged_crisis=True`, replies with crisis resources and **skips the model**.
-  - Otherwise it builds the prompt (`apps/chat/prompts.py`): `system.md` + the law reference, then calls `llm.chat()` and saves both messages. A model failure returns 502 and keeps the user message.
+- `GET/POST /api/cases/<case_pk>/conversations/<id>/messages/`. POST `{content, province?, language?}` is owner-only and synchronous. It returns `{user_message, reply}`:
+  - Crisis check first (`apps/chat/crisis.py`, English and French). If flagged, it saves only the user message with `flagged_crisis=True` and returns `reply: null` plus a plain-text `crisis_resources`. It **skips the model**, and flagged messages are never sent to a model later. The frontend shows its own translated `CrisisBanner`.
+  - Otherwise it builds the prompt (`apps/chat/prompts.py`): `system.md` + the law reference, then calls `llm.chat()` with `Write your reply in <language>` and saves both messages. A model failure or empty reply returns 502 and saves **nothing**, so the frontend can safely resend.
   - Retrieval may call the embedding model, so it **must stay after** the crisis check.
+  - **Scope is strict**: the assistant only helps with workplace issues (rights, harassment, safety, documenting incidents, next steps, related support). The rules are in `prompts/system.md`. Off-topic replies are swapped for a fixed English/French refusal by `apps/chat/scope.py` when the model returns `[OFF_TOPIC]` **or** the reply contains code (a check that doesn't rely on the model, because small models don't always comply).
 
 ### Law reference RAG (`apps/knowledge`)
 - Source docs: `backend/prompts/provinces/<CODE>.md` and `<CODE>/*.md` (Markdown). Only `AB.md` exists so far.
@@ -139,7 +140,7 @@ All endpoints require authentication.
 `apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback). 52 tests in total. Chat tests mock `llm.chat`; tests must never call the real model.
 
 ### Not built yet
-- WebSocket streaming for chat (the send endpoint is synchronous for now). Proposed message format:
+- WebSocket streaming for chat. The frontend (`frontend/src/api/chat.ts`) calls the synchronous endpoint and passes the whole reply to `onDelta` once. Proposed message format:
   - `client → {type:"message", content}`
   - `server → crisis | token(delta) | done(message_id) | error`
 - Celery tasks for document extraction and timeline generation (`TODO(llm)` in `documents/views.py`).
@@ -159,6 +160,7 @@ All endpoints require authentication.
 ### AI
 - Call LLMs only through `apps/chat/llm.py`. Do not call OpenRouter or model providers from anywhere else, and never from the frontend.
 - Keep `provider.data_collection = "deny"` on every request outside local dev (controlled by `OPENROUTER_DATA_COLLECTION`).
+- The assistant answers only workplace-related questions; keep both scope layers (prompt rules + `scope.py` check) when changing prompts or models.
 - The assistant must be clearly identified as AI to users. It must not present itself as a human, and must not give legal advice; it organizes information and points people to professionals.
 - If a message suggests someone is in danger, show crisis resources before any model call.
 - Slow AI work (document extraction, timeline generation) runs in Celery, not in the request.
