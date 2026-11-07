@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'drf_spectacular',
     # local
     'apps.accounts',
     'apps.cases',
@@ -159,6 +160,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
@@ -170,3 +172,15 @@ OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'anthropic/claude-sonnet-5
 
 # Uploaded case files: never under STATIC/MEDIA URLs.
 PRIVATE_MEDIA_ROOT = os.environ.get('PRIVATE_MEDIA_ROOT', str(BASE_DIR / 'private_media'))
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Boardwise API',
+    'DESCRIPTION': 'Authenticate with `Authorization: Token <token>` from POST /api/auth/login/.',
+    'VERSION': '0.1.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'ENUM_NAME_OVERRIDES': {
+        'CaseStatusEnum': 'apps.cases.models.Case.Status',
+        'DocumentStatusEnum': 'apps.documents.models.Document.Status',
+    },
+}

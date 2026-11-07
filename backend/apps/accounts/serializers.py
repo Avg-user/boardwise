@@ -7,3 +7,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = ["id", "username", "role", "preferred_language"]
         read_only_fields = ["id", "username", "role"]
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    user = UserSerializer()
