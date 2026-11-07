@@ -13,7 +13,7 @@ from apps.cases.permissions import CaseScopedMixin
 from . import llm
 from .crisis import CRISIS_RESOURCES, is_crisis
 from .models import Conversation, Message
-from .scope import is_off_topic, is_off_topic_request, refusal
+from .scope import OFF_TOPIC_MARKER, is_off_topic, is_off_topic_request, is_workplace_related, refusal
 from .prompts import ProvinceNotFound, check_province, system_prompt
 from .serializers import (ConversationSerializer, MessageSerializer, SendMessageResponseSerializer,
                           SendMessageSerializer)
@@ -87,6 +87,15 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
         try:
             completion = llm.chat(payload)
             text = (completion.choices[0].message.content or "").strip()
+            # Small models sometimes call a real workplace-law question off-topic because the
+            # reference doesn't cover it. Ask once more before refusing.
+            if OFF_TOPIC_MARKER in text and is_workplace_related(content):
+                logger.info("Off-topic marker on a workplace question, retrying: conversation=%s", convo.pk)
+                retry = payload + [{"role": "system", "content": (
+                    "This question is about work or workplace law, so it is on-topic. Answer it. If the "
+                    "reference doesn't cover it, say so and point to the right office."
+                )}]
+                text = (llm.chat(retry).choices[0].message.content or "").strip()
         except Exception as exc:  # never log content, only IDs and the error type
             logger.error("LLM call failed: conversation=%s error=%s", convo.pk, type(exc).__name__)
             text = ""

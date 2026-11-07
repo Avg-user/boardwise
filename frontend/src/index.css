@@ -51,7 +51,8 @@
   /* Fonts are bundled with the app, so visitors make no requests to a font host. */
   --font-sans: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Archivo Variable', 'Arial Narrow', system-ui, sans-serif;
-  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Labels used to be monospace; plain sans reads more professional. */
+  --font-mono: var(--font-sans);
 
   --radius: 4px;
   --content-width: 72rem;
@@ -198,11 +199,6 @@ main:focus {
   text-transform: uppercase;
 }
 
-.safety-mark {
-  width: 1.5rem;
-  height: auto;
-  color: var(--color-primary);
-}
 
 header {
   border-bottom: 1px solid var(--color-divider);
@@ -1316,10 +1312,6 @@ p.message--user {
   border-radius: var(--radius);
 }
 
-.mini-van {
-  width: 6.5rem;
-  height: auto;
-}
 
 /* Workplace scene (decorative). Colours come from --scene-* and --skin-* tokens. */
 .workplace-scene {
@@ -1385,13 +1377,7 @@ p.message--user {
     animation: wheel-spin 0.6s linear infinite;
   }
 
-  .van--idle {
-    animation: idle 0.4s ease-in-out infinite alternate;
-  }
 
-  .van--idle .wheel {
-    animation: none;
-  }
 
   .road-dashes {
     animation: road-move 1.2s linear infinite;
@@ -1458,9 +1444,6 @@ p.message--user {
   to { transform: rotate(360deg); }
 }
 
-@keyframes idle {
-  to { transform: translateY(-1.5px); }
-}
 
 @keyframes road-move {
   to { stroke-dashoffset: -40; }
@@ -2075,4 +2058,593 @@ p.message--user {
   margin-bottom: 0.75rem;
   color: var(--color-text-muted);
   cursor: pointer;
+}
+
+/* ------------------------------------------------------------------
+   Professional refresh: quieter type, flat controls, no decoration
+   for its own sake. Later rules here override the earlier theme.
+   ------------------------------------------------------------------ */
+body {
+  background-image: none;
+}
+
+h1,
+.app-shell[data-theme] h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-transform: none;
+}
+
+.app-brand {
+  font-size: 1.125rem;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.app-nav a {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.app-nav a:hover {
+  color: var(--color-text);
+}
+
+.app-nav a[aria-current='page'] {
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+.eyebrow {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.eyebrow::before {
+  display: none;
+}
+
+.button,
+.app-shell[data-theme] .button {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  box-shadow: none;
+  font-family: var(--font-sans);
+  font-stretch: 100%;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.button:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.field > label,
+.field > legend {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.field > input,
+.field > select,
+.field > textarea,
+.composer {
+  border-width: 1px;
+  border-radius: 6px;
+}
+
+/* Small section labels */
+.section-title,
+.partner-panel__title,
+.case-pane h2,
+.case-section h2,
+.case-overview__label,
+.facts dt {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.ai-label,
+.tag,
+.portal-badge {
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.case-card__meta,
+.firm-card__meta,
+.timeline time,
+.app-footer {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-footer {
+  border-top-style: solid;
+  font-size: 0.8125rem;
+}
+
+/* Sign-in cards: a plain panel instead of a clipboard */
+.auth-split .auth-page,
+.auth-split--partner .auth-page,
+.connect-card {
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.08);
+}
+
+.auth-split .auth-page::before {
+  display: none;
+}
+
+.partner-card,
+.feature-tile,
+.firm-card {
+  border-top-width: 1px;
+  border-radius: 8px;
+}
+
+/* My issues */
+.page-header {
+  max-width: none;
+}
+
+.cases-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  align-items: start;
+  gap: 2.5rem;
+}
+
+.case-list {
+  max-width: none;
+  gap: 0;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.case-list > li + li {
+  border-top: 1px solid var(--color-divider);
+}
+
+.case-list__head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.case-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.case-card:hover,
+.case-card[data-previewed='true'] {
+  background: var(--color-raised);
+}
+
+.case-card__title {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-stretch: 100%;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.case-card__meta {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.case-section h2 {
+  margin-bottom: 0.5rem;
+}
+
+.case-overview {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.case-overview h2 {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.help-panel {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.help-card {
+  display: grid;
+  gap: 0.375rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.help-card h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.help-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.help-card a {
+  justify-self: start;
+  font-weight: 600;
+}
+
+.help-card--urgent {
+  border-color: color-mix(in srgb, var(--color-crisis-text) 35%, var(--color-divider));
+}
+
+.help-card--urgent a {
+  color: var(--color-crisis-text);
+}
+
+/* Sign-in headline: same voice as the rest of the app */
+.scene-panel__tagline {
+  font-size: 2rem;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-transform: none;
+}
+
+.scene-panel__tagline em {
+  padding: 0;
+  background: none;
+  color: var(--color-tint-text);
+}
+
+.scene-panel__note {
+  font-size: 1rem;
+}
+
+.timeline__tag {
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.help-links {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+
+/* Mascot: the Boardwise owl */
+:root {
+  --owl-body: #8a6a4b;
+  --owl-dark: #6b4f36;
+  --owl-belly: #efe3cb;
+  --owl-face: #f6eedc;
+  --owl-eye: #1d1a16;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --owl-body: #a5815d;
+    --owl-dark: #7d5f42;
+  }
+}
+
+.owl {
+  display: block;
+  overflow: visible;
+}
+
+.owl__body { fill: var(--owl-body); }
+.owl__wing { fill: var(--owl-dark); }
+.owl__brow { stroke: var(--owl-dark); fill: none; stroke-linecap: round; }
+.owl__belly { fill: var(--owl-belly); }
+.owl__feathers { stroke: var(--owl-body); fill: none; stroke-linecap: round; }
+.owl__scallops { stroke: color-mix(in srgb, var(--owl-body) 55%, var(--owl-belly)); fill: none; stroke-linecap: round; }
+.owl__face { fill: var(--owl-face); }
+.owl__eye { fill: var(--owl-eye); }
+.owl__glint { fill: #ffffff; }
+.owl__beak,
+.owl__feet { fill: var(--color-primary); }
+.owl__strap { stroke: var(--color-accent); fill: none; stroke-linecap: round; }
+.owl__badge { fill: #ffffff; stroke: rgb(0 0 0 / 0.15); }
+.owl__badge-top { fill: var(--color-primary); }
+.owl__badge-photo { fill: var(--owl-body); }
+.owl__badge-lines { stroke: rgb(0 0 0 / 0.3); fill: none; stroke-linecap: round; }
+
+/* Logo mark */
+.app-brand .owl-mark {
+  width: 1.9rem;
+  height: auto;
+}
+
+/* AI label */
+.ai-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.owl-mark--tiny {
+  width: 1.05rem;
+  height: auto;
+}
+
+/* Sign-in: the owl perches on the card */
+.auth-split .auth-page--perch {
+  position: relative;
+  margin-top: 5rem;
+}
+
+.owl--perch {
+  position: absolute;
+  top: -6.75rem;
+  right: 1.5rem;
+  width: 5.5rem;
+  height: auto;
+}
+
+/* Empty states */
+.owl--empty {
+  width: 5.5rem;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .owl__eyes {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: owl-blink 5s infinite;
+  }
+
+  .owl--perch .owl__head,
+  .owl--empty .owl__head {
+    transform-box: fill-box;
+    transform-origin: 50% 90%;
+    animation: owl-tilt 7s ease-in-out infinite;
+  }
+
+  .owl--wave .owl__wing-right {
+    transform-box: fill-box;
+    transform-origin: 30% 5%;
+    animation: owl-wave 8s ease-in-out infinite;
+  }
+}
+
+@keyframes owl-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+  97% { transform: scaleY(1); }
+}
+
+@keyframes owl-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  60% { transform: rotate(4deg); }
+}
+
+@keyframes owl-wave {
+  0%, 70%, 100% { transform: rotate(0deg); }
+  76% { transform: rotate(-38deg); }
+  82% { transform: rotate(-18deg); }
+  88% { transform: rotate(-38deg); }
+  94% { transform: rotate(0deg); }
+}
+
+/* My issues: owl greeting at the top of the side column */
+.cases-side {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.cases-side .help-panel,
+.cases-side .case-overview {
+  position: static;
+}
+
+.owl-greeting {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.owl-greeting__bubble {
+  position: relative;
+  margin: 0 0 2.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 12px 12px 4px 12px;
+  background: var(--color-tint);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+}
+
+.owl-greeting__bubble strong {
+  display: block;
+  color: var(--color-tint-text);
+}
+
+/* Bubble tail pointing at the owl */
+.owl-greeting__bubble::after {
+  content: '';
+  position: absolute;
+  right: -7px;
+  bottom: 14px;
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+  background: var(--color-tint);
+  transform: rotate(45deg);
+}
+
+.owl--greeting {
+  width: 7rem;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .owl--greeting .owl__head {
+    transform-box: fill-box;
+    transform-origin: 50% 90%;
+    animation: owl-tilt 7s ease-in-out infinite;
+  }
+
+  .owl__pupils {
+    transition: transform 0.12s ease-out;
+  }
+}
+
+/* Owl covers its eyes (sign-in, while typing a password) */
+.owl__covers {
+  opacity: 0;
+  transform: translateY(70px);
+}
+
+.owl--covering .owl__covers {
+  opacity: 1;
+  transform: none;
+}
+
+/* The side wings are the ones that went up. */
+.owl--covering .owl__wing-right,
+.owl--covering > .owl__wing {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .owl__covers,
+  .owl__wing-right,
+  .owl > .owl__wing {
+    transition: transform 0.25s ease-out, opacity 0.2s ease-out;
+  }
+
+  /* Don't wave while hiding its eyes. */
+  .owl--covering .owl__wing-right {
+    animation: none;
+  }
+}
+
+/* Assistant replies rendered from Markdown */
+.markdown {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.markdown > * {
+  margin: 0;
+}
+
+.markdown ul,
+.markdown ol {
+  display: grid;
+  gap: 0.25rem;
+  padding-inline-start: 1.25rem;
+}
+
+.markdown strong {
+  font-weight: 650;
+}
+
+.markdown__heading {
+  font-weight: 700;
+}
+
+.markdown code {
+  padding: 0.0625rem 0.3rem;
+  border-radius: 4px;
+  background: var(--color-raised);
+  font-size: 0.9em;
+}
+
+.markdown__table {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+}
+
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.markdown th,
+.markdown td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: start;
+  vertical-align: top;
+}
+
+.markdown th {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.markdown tr:last-child td {
+  border-bottom: 0;
+}
+
+.markdown a {
+  overflow-wrap: anywhere;
 }

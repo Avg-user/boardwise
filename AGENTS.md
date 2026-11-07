@@ -136,6 +136,8 @@ All endpoints require authentication.
     2. **In the prompt**, the model is told to reply `[OFF_TOPIC]` for anything else off-topic.
     3. **After the model**, `is_off_topic` refuses replies with the marker, with code, or offering to write code. A capitalised "Code" (a law's name) and "code of …" never match.
     All three use the same fixed English/French refusal. The small model ignores layer 2 often, so don't remove 1 or 3.
+    Workplace-law questions outside the reference (other provinces, OHS rules) are on-topic. If the model still answers `[OFF_TOPIC]` to a message `is_workplace_related` recognises, the view asks the model once more before refusing.
+  - Replies are Markdown; the frontend renders them with `react-markdown` + `remark-gfm` (`components/case/Markdown.tsx`, no raw HTML).
 
 ### Law reference RAG (`apps/knowledge`)
 - Source docs: `backend/prompts/provinces/<CODE>.md` and `<CODE>/*.md` (Markdown). Only `AB.md` exists so far.

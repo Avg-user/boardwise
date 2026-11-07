@@ -69,9 +69,29 @@
     "emptyCta": "Start your first issue",
     "openHeading": "Open",
     "closedHeading": "Closed",
-    "eyebrow": "Your case files",
     "overviewLabel": "Timeline overview",
-    "openIssue": "Open issue"
+    "openIssue": "Open issue",
+    "updatedLabel": "Last updated",
+    "columnIssue": "Issue",
+    "columnUpdated": "Last updated",
+    "help": {
+      "label": "Help and resources",
+      "lawyerTitle": "Talk to a lawyer",
+      "lawyerText": "Browse verified firms. A firm only sees an issue if you choose to share it.",
+      "lawyerLink": "Find a lawyer",
+      "urgentTitle": "Need help now?",
+      "privacyTitle": "Your issues are private",
+      "privacyText": "Only you can see them, unless you share one with a firm. You can stop sharing at any time.",
+      "danger": "In danger?",
+      "call911": "Call 911",
+      "support": "Support any time:",
+      "call988": "Call or text 988"
+    },
+    "greeting": {
+      "hello": "Hi, {{name}}.",
+      "helloNoName": "Hi there.",
+      "text": " Pick up where you left off, or start a new issue. I'm here when you need me."
+    }
   },
   "timeline": {
     "chatSession": "Chat session",
