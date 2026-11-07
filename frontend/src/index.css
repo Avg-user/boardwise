@@ -21,6 +21,8 @@
   --color-crisis-text: #a11b12;
   --color-success: #2f6b1e;
   --color-grid: rgb(26 27 30 / 0.05);
+  /* Pop-ups: the page colour in light mode, one step lighter in dark mode so they stand out. */
+  --color-elevated: #f1eee6;
 
   --color-safe: #1f8a4c;
 
@@ -77,6 +79,7 @@
     --color-crisis-text: #ffb4ab;
     --color-success: #8fd16a;
     --color-grid: rgb(255 255 255 / 0.035);
+    --color-elevated: #272a30;
 
     --color-safe: #4cc27e;
 
@@ -565,6 +568,162 @@ button.button {
 }
 
 /* My issues */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  max-width: 48rem;
+}
+
+.page-header h1 {
+  margin-bottom: 0;
+}
+
+.page-header + .page-description {
+  margin-top: 0.5rem;
+}
+
+.case-section + .case-section {
+  margin-top: 2rem;
+}
+
+/* Same label style as the issue screen's side panels. */
+.case-section h2 {
+  margin: 0 0 0.75rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-tint-text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Pop-up dialogs */
+.dialog {
+  width: calc(100% - 2rem);
+  max-width: 28rem;
+  padding: 0;
+  /* Matches the theme's blocky buttons: hard edge and solid offset shadow. */
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius);
+  background: var(--color-elevated);
+  color: var(--color-text);
+  box-shadow: var(--shadow-block);
+}
+
+.dialog::backdrop {
+  background: rgb(26 27 30 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  .dialog::backdrop {
+    background: rgb(0 0 0 / 0.65);
+  }
+
+  /* A black shadow vanishes on asphalt, so the edge carries the separation. */
+  .dialog {
+    border-color: var(--color-text-muted);
+  }
+}
+
+.dialog__body {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.5rem;
+}
+
+.dialog__body h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  letter-spacing: -0.01em;
+}
+
+.dialog__description {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted);
+}
+
+.dialog__actions {
+  justify-content: flex-end;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+a.button-quiet {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.case-header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.case-header h1 {
+  margin: 0;
+}
+
+.case-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-inline-start: -0.75rem;
+}
+
+.status-badge {
+  display: inline-block;
+  margin-inline-start: 0.625rem;
+  padding: 0.125rem 0.5rem;
+  border: 2px solid var(--color-text-muted);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-stretch: normal;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.rename-form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 40rem;
+}
+
+.rename-form__input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.375rem 0.75rem;
+  border: 2px solid var(--color-control);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
 .case-list {
   display: grid;
   gap: 0.5rem;
@@ -907,24 +1066,169 @@ p.message--user {
   text-decoration: underline;
 }
 
+/* Timeline: a vertical line with a dot per item. Entries get solid dots, chat sessions hollow ones. */
 .timeline {
+  position: relative;
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 1.75rem;
   list-style: none;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 0.4375rem;
+  width: 2px;
+  background: var(--color-divider);
+}
+
+.timeline__item {
+  position: relative;
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline__item::before {
+  content: '';
+  position: absolute;
+  top: 0.25rem;
+  left: -1.75rem;
+  width: 1rem;
+  height: 1rem;
+  box-sizing: border-box;
+  border: 2px solid var(--color-text);
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.timeline__item--session::before {
+  border-color: var(--color-accent);
+  background: var(--color-bg);
 }
 
 .timeline time {
   display: block;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
 }
 
 .timeline__title {
   display: block;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.timeline__tag {
+  display: inline-block;
+  padding: 0 0.375rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+}
+
+.timeline__session {
+  display: grid;
+  gap: 0.125rem;
+  margin: -0.375rem -0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.timeline__session:hover {
+  background: var(--color-surface);
+}
+
+.timeline__session:hover .timeline__title {
+  text-decoration: underline;
+}
+
+.timeline__session[aria-current='true'] {
+  background: var(--color-tint);
+}
+
+.session-notice {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-divider);
+  border-inline-start: 4px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 0.9375rem;
+}
+
+/* My issues: list with a timeline overview beside it on wide screens. */
+.cases-layout__list {
+  min-width: 0;
+}
+
+.case-overview {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .cases-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 48rem) minmax(18rem, 1fr);
+    align-items: start;
+    gap: 2.5rem;
+  }
+
+  .case-overview {
+    position: sticky;
+    top: 1rem;
+    display: grid;
+    gap: 0.75rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: 1.25rem;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+  }
+
+  /* Leaves the yellow stripe on the left alone. */
+  .case-card[data-previewed='true'] {
+    border-block-color: var(--color-text-muted);
+    border-inline-end-color: var(--color-text-muted);
+  }
+}
+
+.case-overview__label {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.case-overview h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.case-overview__open {
+  justify-self: start;
+  margin-inline-start: -0.75rem;
 }
 
 .checklist {

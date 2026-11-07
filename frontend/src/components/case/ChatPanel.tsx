@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { createConversation, sendMessage } from '../../api/chat.ts'
 import type { ChatMessage } from '../../api/types.ts'
 import CrisisBanner from './CrisisBanner.tsx'
@@ -48,7 +49,14 @@ function Message({ message }: { message: ChatMessage }) {
 function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const { conversationId, messages, isLoading, isError } = useConversation(caseId)
+  const { conversationId, conversation, isLatest, messages, isLoading, isError } =
+    useConversation(caseId)
+  const sessionDate = conversation
+    ? new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(conversation.created_at))
+    : ''
   const [draft, setDraft] = useState('')
   const [pendingText, setPendingText] = useState<string | null>(null)
   const [streamedText, setStreamedText] = useState('')
@@ -134,6 +142,12 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
 
   return (
     <div className="chat">
+      {!isLatest && (
+        <p className="session-notice">
+          {t('chat.earlierSession', { date: sessionDate })}{' '}
+          <Link to={{ search: '' }}>{t('chat.latestSession')}</Link>
+        </p>
+      )}
       <div className="chat__log" role="log" aria-busy={isSending} aria-label={t('chat.logLabel')}>
         {isLoading && <p role="status">{t('common.loading')}</p>}
         {isError && (
