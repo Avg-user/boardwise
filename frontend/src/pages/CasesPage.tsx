@@ -6,6 +6,7 @@ import { listCases } from '../api/cases.ts'
 import type { Case } from '../api/types.ts'
 import { useCurrentUser } from '../auth/useCurrentUser.ts'
 import NewCaseDialog from '../components/NewCaseDialog.tsx'
+import { MiniVan } from '../components/site/WorkplaceScene.tsx'
 
 function CaseCard({ item, dateFormat }: { item: Case; dateFormat: Intl.DateTimeFormat }) {
   const { t } = useTranslation()
@@ -66,6 +67,7 @@ function CasesPage() {
   return (
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
+      <p className="eyebrow">{t('cases.eyebrow')}</p>
       <div className="page-header">
         <h1>{title}</h1>
         {canCreate && (
@@ -83,14 +85,17 @@ function CasesPage() {
         </p>
       )}
       {cases?.length === 0 && (
-        <p className="placeholder-notice">
-          {t('cases.empty')}{' '}
-          {canCreate && (
-            <button type="button" className="link-button" onClick={() => setIsCreating(true)}>
-              {t('cases.emptyCta')}
-            </button>
-          )}
-        </p>
+        <div className="empty-state">
+          <MiniVan />
+          <p className="placeholder-notice">
+            {t('cases.empty')}{' '}
+            {canCreate && (
+              <button type="button" className="link-button" onClick={() => setIsCreating(true)}>
+                {t('cases.emptyCta')}
+              </button>
+            )}
+          </p>
+        </div>
       )}
       {openCases.length > 0 && (
         <section className="case-section" aria-label={t('cases.openHeading')}>

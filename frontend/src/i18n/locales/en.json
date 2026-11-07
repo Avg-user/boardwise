@@ -48,7 +48,11 @@
       "hrHint": "See anonymous reports and review job descriptions.",
       "lawFirm": "A law firm",
       "lawFirmHint": "Offer your expertise to people looking for help."
-    }
+    },
+    "eyebrow": "Workplace rights · Alberta",
+    "taglineStart": "Every workplace should be",
+    "taglineEmphasis": "safe.",
+    "taglineNote": "If yours isn't, we'll help you do something about it."
   },
   "cases": {
     "title": "My issues",
@@ -59,7 +63,8 @@
     "newIssue": "New issue",
     "emptyCta": "Start your first issue",
     "openHeading": "Open",
-    "closedHeading": "Closed"
+    "closedHeading": "Closed",
+    "eyebrow": "Your case files"
   },
   "newCase": {
     "title": "New issue",

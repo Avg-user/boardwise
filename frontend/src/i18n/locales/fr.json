@@ -48,7 +48,11 @@
       "hrHint": "Consultez les signalements anonymes et évaluez les descriptions de poste.",
       "lawFirm": "Un cabinet d'avocats",
       "lawFirmHint": "Offrez votre expertise aux personnes qui cherchent de l'aide."
-    }
+    },
+    "eyebrow": "Droits au travail · Alberta",
+    "taglineStart": "Chaque milieu de travail devrait être",
+    "taglineEmphasis": "sécuritaire.",
+    "taglineNote": "Si le vôtre ne l'est pas, on vous aide à agir."
   },
   "cases": {
     "title": "Mes dossiers",
@@ -59,7 +63,8 @@
     "newIssue": "Nouveau dossier",
     "emptyCta": "Créer votre premier dossier",
     "openHeading": "Ouverts",
-    "closedHeading": "Fermés"
+    "closedHeading": "Fermés",
+    "eyebrow": "Vos dossiers"
   },
   "newCase": {
     "title": "Nouveau dossier",

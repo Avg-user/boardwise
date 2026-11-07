@@ -4,6 +4,7 @@ import { logout } from '../api/auth.ts'
 import type { UserRole } from '../api/types.ts'
 import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import LanguageSwitcher from './LanguageSwitcher.tsx'
+import { SafetyMark } from './site/WorkplaceScene.tsx'
 
 const NAV_ITEMS = {
   victim: [
@@ -41,6 +42,7 @@ function AppLayout() {
             to={user ? getRoleHome(user.role) : '/login'}
             aria-label={t('app.home')}
           >
+            <SafetyMark />
             {t('app.name')}
           </Link>
           {user && (
