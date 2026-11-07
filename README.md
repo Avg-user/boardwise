@@ -22,6 +22,8 @@ cd frontend && npm run dev                                 # http://localhost:51
 
 Health check: http://localhost:8000/api/health/ — admin: http://localhost:8000/admin/
 
+LLM chat service: set `OPENROUTER_API_KEY` in `.env`, run `docker compose up backend --build`, then try it at http://localhost:8001/docs
+
 ## Layout
 - `backend/config` — settings, urls, celery
 - `backend/apps/` — accounts, cases, documents, chat, tasks, lawfirms, hr
