@@ -1,0 +1,121 @@
+{
+  "app": {
+    "name": "Boardwise",
+    "home": "Boardwise home"
+  },
+  "common": {
+    "loading": "Loading…",
+    "serverError": "Something went wrong and we couldn't complete that. Check your connection and try again.",
+    "opensInNewTab": "(opens in a new tab)"
+  },
+  "layout": {
+    "skipToContent": "Skip to main content",
+    "mainNavigation": "Main navigation",
+    "language": "Language",
+    "disclaimer": "Boardwise gives general information about workplace rights in Alberta. It is not legal advice. For advice about your situation, talk to a lawyer."
+  },
+  "nav": {
+    "issues": "My issues",
+    "lawyers": "Find a lawyer",
+    "hr": "HR board",
+    "firm": "Firm profile"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signOut": "Sign out",
+    "signInDescription": "Sign in to see your saved issues.",
+    "signUpDescription": "Your account keeps your issues private and saved in one place.",
+    "createAccount": "Create account",
+    "creatingAccount": "Creating account…",
+    "username": "Username",
+    "usernameHint": "You don't need to use your real name.",
+    "usernameRequired": "Enter a username.",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "invalidCredentials": "That username or password isn't right. Check them and try again.",
+    "passwordTooShort": "Use at least {{count}} characters.",
+    "passwordMismatch": "These passwords don't match.",
+    "signupUnavailable": "Creating new accounts isn't available yet. If you have a demo account, sign in with that instead.",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "roleQuestion": "Who is this account for?",
+    "roles": {
+      "victim": "A worker",
+      "victimHint": "Get help understanding a workplace issue.",
+      "hr": "An HR board",
+      "hrHint": "See anonymous reports and review job descriptions.",
+      "lawFirm": "A law firm",
+      "lawFirmHint": "Offer your expertise to people looking for help."
+    }
+  },
+  "cases": {
+    "title": "My issues",
+    "description": "Keep track of each workplace issue in one private place.",
+    "empty": "You don't have any issues yet.",
+    "updated": "Updated {{date}}",
+    "closed": "Closed"
+  },
+  "case": {
+    "back": "Back to My issues",
+    "timeline": "Timeline",
+    "timelineEmpty": "Nothing on your timeline yet.",
+    "nextSteps": "Things you can do",
+    "nextStepsEmpty": "Nothing on your checklist yet.",
+    "progress": "{{done}} of {{total}} done",
+    "suggestions": "Suggested by the AI assistant",
+    "addStep": "Add",
+    "addStepNamed": "Add to checklist: {{title}}",
+    "readOnly": "This issue was shared with you, so you can view it but not change it.",
+    "tabs": {
+      "chat": "Chat",
+      "timeline": "Timeline",
+      "steps": "Next steps"
+    }
+  },
+  "chat": {
+    "aiLabel": "AI assistant",
+    "logLabel": "Conversation with the AI assistant",
+    "intro": "Hi, I'm an AI assistant, not a lawyer or a person. Tell me what's happening at work and I'll share general information about workplace rights in Alberta and possible next steps.",
+    "messageLabel": "Your message",
+    "placeholder": "Describe what happened. You don't need to use real names.",
+    "send": "Send",
+    "thinking": "Thinking…",
+    "sources": "Sources",
+    "notice": "AI can make mistakes. This is general information, not legal advice, so check the sources or talk to a professional.",
+    "sendFailed": "Your message didn't send. It's back in the box so you can try again."
+  },
+  "crisis": {
+    "title": "Are you in immediate danger?",
+    "call911": "Call 911 now",
+    "supportIntro": "You can also reach free support, any time:",
+    "suicideLine": "Suicide Crisis Helpline (call or text)",
+    "mentalHealthLine": "Alberta Mental Health Help Line",
+    "familyViolenceLine": "Alberta Family Violence Info Line (call or text)",
+    "supportLine": "211 Alberta, for local support services (call or text)",
+    "notSent": "We didn't send this message to the AI assistant. You can come back to this chat whenever you're ready.",
+    "hide": "Hide this message"
+  },
+  "placeholder": {
+    "notice": "This screen is still being built."
+  },
+  "pages": {
+    "lawyers": {
+      "title": "Find a lawyer",
+      "description": "Browse law firms by area of expertise and choose who to contact."
+    },
+    "hr": {
+      "title": "HR board",
+      "description": "See anonymous reports, overall trends and job description reviews."
+    },
+    "firm": {
+      "title": "Firm profile",
+      "description": "Manage your firm's areas of expertise and case statistics."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "This page doesn't exist or may have moved.",
+    "back": "Go to My issues"
+  }
+}
