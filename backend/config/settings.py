@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # third party
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     # local
     'apps.accounts',
@@ -153,7 +154,10 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
 }
 
@@ -163,3 +167,6 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'anthropic/claude-sonnet-5.5')
+
+# Uploaded case files: never under STATIC/MEDIA URLs.
+PRIVATE_MEDIA_ROOT = os.environ.get('PRIVATE_MEDIA_ROOT', str(BASE_DIR / 'private_media'))
