@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     # third party
     'rest_framework',
     'rest_framework.authtoken',
@@ -54,6 +57,7 @@ INSTALLED_APPS = [
     'apps.tasks',
     'apps.lawfirms',
     'apps.hr',
+    'apps.knowledge',
 ]
 
 MIDDLEWARE = [
@@ -169,6 +173,18 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'anthropic/claude-sonnet-5.5')
+OPENROUTER_MAX_RETRIES = int(os.environ.get('OPENROUTER_MAX_RETRIES', '4'))
+# "deny" is required for real user data. "allow" is a dev-only escape hatch for free models.
+OPENROUTER_DATA_COLLECTION = os.environ.get('OPENROUTER_DATA_COLLECTION', 'deny')
+if OPENROUTER_DATA_COLLECTION not in ('deny', 'allow'):
+    raise ImproperlyConfigured('OPENROUTER_DATA_COLLECTION must be "deny" or "allow"')
+CHAT_DEFAULT_PROVINCE = os.environ.get('CHAT_DEFAULT_PROVINCE', 'AB')
+CHAT_HISTORY_LIMIT = int(os.environ.get('CHAT_HISTORY_LIMIT', '40'))
+
+# RAG over province law references (apps.knowledge). Empty EMBEDDING_MODEL = full-text search only.
+EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'openai/text-embedding-3-small')
+RAG_TOP_K = int(os.environ.get('RAG_TOP_K', '6'))
+RAG_SEARCH_CONFIG = os.environ.get('RAG_SEARCH_CONFIG', 'english')  # Postgres text search config
 
 # Uploaded case files: never under STATIC/MEDIA URLs.
 PRIVATE_MEDIA_ROOT = os.environ.get('PRIVATE_MEDIA_ROOT', str(BASE_DIR / 'private_media'))
