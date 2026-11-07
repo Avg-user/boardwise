@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from apps.cases.views import CaseChildViewSet
 
-# Create your views here.
+from .models import Task
+from .serializers import TaskSerializer
+
+
+class TaskViewSet(CaseChildViewSet):
+    model = Task
+    serializer_class = TaskSerializer
+    queryset = Task.objects.none()
