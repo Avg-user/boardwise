@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "Boardwise",
+    "home": "Accueil de Boardwise"
+  },
+  "layout": {
+    "skipToContent": "Aller au contenu principal",
+    "mainNavigation": "Navigation principale",
+    "language": "Langue",
+    "disclaimer": "Boardwise fournit des renseignements généraux sur les droits au travail en Alberta. Il ne s'agit pas d'un avis juridique. Pour obtenir des conseils sur votre situation, adressez-vous à un avocat."
+  },
+  "nav": {
+    "issues": "Mes dossiers",
+    "lawyers": "Trouver un avocat"
+  },
+  "placeholder": {
+    "notice": "Cet écran est en cours de création."
+  },
+  "pages": {
+    "issues": {
+      "title": "Mes dossiers",
+      "description": "Suivez chaque problème au travail dans un seul espace privé."
+    },
+    "login": {
+      "title": "Connexion",
+      "description": "Connectez-vous pour voir vos dossiers enregistrés."
+    },
+    "case": {
+      "title": "Détails du dossier",
+      "description": "Discutez avec l'assistant IA, organisez votre chronologie et consultez les prochaines étapes possibles."
+    },
+    "lawyers": {
+      "title": "Trouver un avocat",
+      "description": "Parcourez les cabinets d'avocats par domaine d'expertise et choisissez qui contacter."
+    },
+    "hr": {
+      "title": "Conseil des RH",
+      "description": "Consultez les signalements anonymes, les tendances générales et les évaluations de descriptions de poste."
+    },
+    "firm": {
+      "title": "Profil du cabinet",
+      "description": "Gérez les domaines d'expertise et les statistiques de dossiers de votre cabinet."
+    }
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "description": "Cette page n'existe pas ou a peut-être été déplacée.",
+    "back": "Aller à Mes dossiers"
+  }
+}

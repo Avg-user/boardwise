@@ -1,111 +1,220 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
   color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* Matcha palette */
+  --color-bg: #f7f7ee;
+  --color-surface: #eeefdf;
+  --color-raised: #e3e5cf;
+  --color-text: #1e2214;
+  --color-text-muted: #575c45;
+  --color-divider: #e1e3cf;
+  --color-control: #82866e;
+  --color-primary: #4a6318;
+  --color-primary-hover: #3a4f12;
+  --color-on-primary: #ffffff;
+  --color-tint: #e7efc4;
+  --color-tint-text: #3f5514;
+  --color-crisis-bg: #fdecea;
+  --color-crisis-text: #a11b12;
+  --color-success: #3f5514;
+
+  /* Geist is bundled with the app, so visitors make no requests to a font host. */
+  --font-sans: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius: 8px;
+  --content-width: 72rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --color-bg: #12140c;
+    --color-surface: #1c1f13;
+    --color-raised: #292d1d;
+    --color-text: #f1f2e6;
+    --color-text-muted: #adb199;
+    --color-divider: #2d3120;
+    --color-control: #787c65;
+    --color-primary: #bbd66b;
+    --color-primary-hover: #cce38a;
+    --color-on-primary: #1c2408;
+    --color-tint: #2a3314;
+    --color-tint-text: #cce38a;
+    --color-crisis-bg: #3a1513;
+    --color-crisis-text: #ffb4ab;
+    --color-success: #bbd66b;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: 1rem/1.55 var(--font-sans);
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+a {
+  color: var(--color-tint-text);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* The skip link moves focus here; the page itself needs no outline. */
+main:focus {
+  outline: none;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.app-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  padding-block: 0.75rem;
+}
+
+.app-brand {
+  color: var(--color-text);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  order: 3;
+  width: 100%;
+}
+
+.app-nav a {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.app-nav a:hover {
+  background: var(--color-surface);
+}
+
+.app-nav a[aria-current='page'] {
+  background: var(--color-tint);
+  color: var(--color-tint-text);
+  font-weight: 600;
+}
+
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.language-switcher select {
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--color-control);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+@media (min-width: 48rem) {
+  .app-nav {
+    order: 0;
+    width: auto;
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+
+.app-main {
+  flex: 1;
+  padding-block: 1.5rem 2rem;
 }
-p {
+
+.page-description {
+  max-width: 40rem;
+  margin: 0 0 1.5rem;
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
+}
+
+.placeholder-notice {
   margin: 0;
+  color: var(--color-text-muted);
 }
 
-code,
-.counter {
-  font-family: var(--mono);
+.button {
   display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  text-decoration: none;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.button:hover {
+  background: var(--color-primary-hover);
+}
+
+.app-footer {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.app-footer p {
+  margin-block: 1rem;
 }

@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "Boardwise",
+    "home": "Boardwise home"
+  },
+  "layout": {
+    "skipToContent": "Skip to main content",
+    "mainNavigation": "Main navigation",
+    "language": "Language",
+    "disclaimer": "Boardwise gives general information about workplace rights in Alberta. It is not legal advice. For advice about your situation, talk to a lawyer."
+  },
+  "nav": {
+    "issues": "My issues",
+    "lawyers": "Find a lawyer"
+  },
+  "placeholder": {
+    "notice": "This screen is still being built."
+  },
+  "pages": {
+    "issues": {
+      "title": "My issues",
+      "description": "Keep track of each workplace issue in one private place."
+    },
+    "login": {
+      "title": "Sign in",
+      "description": "Sign in to see your saved issues."
+    },
+    "case": {
+      "title": "Issue details",
+      "description": "Chat with the AI assistant, organize your timeline and see possible next steps."
+    },
+    "lawyers": {
+      "title": "Find a lawyer",
+      "description": "Browse law firms by area of expertise and choose who to contact."
+    },
+    "hr": {
+      "title": "HR board",
+      "description": "See anonymous reports, overall trends and job description reviews."
+    },
+    "firm": {
+      "title": "Firm profile",
+      "description": "Manage your firm's areas of expertise and case statistics."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "This page doesn't exist or may have moved.",
+    "back": "Go to My issues"
+  }
+}
