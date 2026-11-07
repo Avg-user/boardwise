@@ -41,6 +41,38 @@ class ScopeTests(TestCase):
         self.assertFalse(contains_code("Under s. 18 you are owed a 30-minute break if you work more than 5 hours."))
 
 
+class OffTopicRequestTests(TestCase):
+    def test_blocks_obvious_off_topic(self):
+        from .scope import is_off_topic_request
+        for t in ["can you write a python program", "write me a script that sorts a list", "what is 2+2",
+                  "15*7", "Calculate 3 / 4", "debug my javascript function", "give me some SQL code"]:
+            self.assertTrue(is_off_topic_request(t), t)
+
+    def test_lets_workplace_messages_through(self):
+        from .scope import is_off_topic_request
+        for t in ["My boss makes me write code after hours without pay",
+                  "I'm a Python developer and my manager harasses me",
+                  "How many hours of overtime is 9 + 2?",
+                  "My manager keeps yelling at me", "hi, what can you help me with?",
+                  "Can you help me write a complaint letter?", "I worked 9 hours with no break"]:
+            self.assertFalse(is_off_topic_request(t), t)
+
+    def test_reply_offering_code_is_off_topic(self):
+        from .scope import is_off_topic
+        offer = ("Absolutely! I'd be happy to help you write a Python program! Describe the task "
+                 "and I'll provide the code.")
+        self.assertTrue(is_off_topic(offer))
+        self.assertTrue(is_off_topic("Sure, I can write a program for that."))
+        self.assertTrue(is_off_topic("Here's how. I'll give you the code once you describe it."))
+        for legal in ["Ask HR for a copy of the code of conduct and keep your notes dated.",
+                      "Ask HR to provide a copy of the code of conduct.",
+                      "I can provide a summary of the Employment Standards Code, s. 18.",
+                      "Under the Occupational Health and Safety Code, your employer must provide the Code to workers.",
+                      "Alberta's Human Rights Code protects you. Write the details down."]:
+            self.assertFalse(is_off_topic(legal), legal)
+        self.assertFalse(is_off_topic("Write down what happened, who was there, and keep copies of emails."))
+
+
 class PromptTests(TestCase):
     def test_builds_prompt(self):
         p = system_prompt("AB")
@@ -102,6 +134,21 @@ class SendMessageApiTests(APITestCase):
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.data["reply"]["content"], REFUSALS["fr"])
         self.assertNotIn("[OFF_TOPIC]", self.convo.messages.last().content)
+
+    def test_off_topic_request_skips_model(self, chat):
+        self.client.force_authenticate(self.victim)
+        r = self.client.post(self.url, {"content": "can you write a python program"}, format="json")
+        self.assertEqual(r.status_code, 201)
+        chat.assert_not_called()
+        self.assertEqual(r.data["reply"]["content"], REFUSALS["en"])
+        self.assertEqual(self.convo.messages.count(), 2)
+
+    def test_reply_offering_code_is_refused(self, chat):
+        chat.return_value = fake_completion("Absolutely—I'd be happy to help you write a Python program! "
+                                            "Just describe the task and I'll provide the code.")
+        self.client.force_authenticate(self.victim)
+        r = self.client.post(self.url, {"content": "for my case, help me sort my notes with a computer"}, format="json")
+        self.assertEqual(r.data["reply"]["content"], REFUSALS["en"])
 
     def test_reply_with_code_is_refused(self, chat):
         chat.return_value = fake_completion("Sure! Here you go:\n```python\nprint(sorted(notes))\n```")
