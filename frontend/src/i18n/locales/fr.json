@@ -6,7 +6,8 @@
   "common": {
     "loading": "Chargement…",
     "serverError": "Une erreur s'est produite et l'action n'a pas abouti. Vérifiez votre connexion et réessayez.",
-    "opensInNewTab": "(s'ouvre dans un nouvel onglet)"
+    "opensInNewTab": "(s'ouvre dans un nouvel onglet)",
+    "cancel": "Annuler"
   },
   "layout": {
     "skipToContent": "Aller au contenu principal",
@@ -54,10 +55,31 @@
     "description": "Suivez chaque problème au travail dans un seul espace privé.",
     "empty": "Vous n'avez encore aucun dossier.",
     "updated": "Mis à jour le {{date}}",
-    "closed": "Fermé"
+    "closed": "Fermé",
+    "newIssue": "Nouveau dossier",
+    "emptyCta": "Créer votre premier dossier",
+    "openHeading": "Ouverts",
+    "closedHeading": "Fermés"
+  },
+  "newCase": {
+    "title": "Nouveau dossier",
+    "description": "Donnez un nom court à votre dossier. Vous pourrez le modifier plus tard.",
+    "label": "Nom du dossier",
+    "hint": "Par exemple : « Commentaires de mon superviseur ». Vous n'avez pas besoin d'utiliser de vrais noms.",
+    "required": "Entrez un nom pour ce dossier.",
+    "create": "Créer le dossier",
+    "creating": "Création…"
   },
   "case": {
     "back": "Retour à Mes dossiers",
+    "rename": "Renommer",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "closeIssue": "Fermer le dossier",
+    "reopenIssue": "Rouvrir le dossier",
+    "closedBadge": "Fermé",
+    "statusClosed": "Dossier fermé.",
+    "statusReopened": "Dossier rouvert.",
     "timeline": "Chronologie",
     "timelineEmpty": "Votre chronologie est vide pour l'instant.",
     "nextSteps": "Ce que vous pouvez faire",

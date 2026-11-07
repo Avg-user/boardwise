@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { getCase } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
+import CaseHeader from '../components/case/CaseHeader.tsx'
 import ChatPanel from '../components/case/ChatPanel.tsx'
 import NextStepsPanel from '../components/case/NextStepsPanel.tsx'
 import TimelinePanel from '../components/case/TimelinePanel.tsx'
@@ -55,7 +56,7 @@ function CasePage() {
       <Link className="back-link" to="/">
         {t('case.back')}
       </Link>
-      <h1>{title}</h1>
+      <CaseHeader caseItem={caseQuery.data} />
 
       <div className="case-tabs">
         {TABS.map((tab) => (

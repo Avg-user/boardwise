@@ -9,6 +9,9 @@ export function getCase(caseId: number): Promise<Case> {
   return request<Case>(`/cases/${caseId}/`)
 }
 
+/** The backend's limit for case titles. */
+export const MAX_CASE_TITLE_LENGTH = 200
+
 export function createCase(title: string): Promise<Case> {
   return request<Case>('/cases/', { method: 'POST', json: { title } })
 }

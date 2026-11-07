@@ -6,7 +6,8 @@
   "common": {
     "loading": "Loading…",
     "serverError": "Something went wrong and we couldn't complete that. Check your connection and try again.",
-    "opensInNewTab": "(opens in a new tab)"
+    "opensInNewTab": "(opens in a new tab)",
+    "cancel": "Cancel"
   },
   "layout": {
     "skipToContent": "Skip to main content",
@@ -54,10 +55,31 @@
     "description": "Keep track of each workplace issue in one private place.",
     "empty": "You don't have any issues yet.",
     "updated": "Updated {{date}}",
-    "closed": "Closed"
+    "closed": "Closed",
+    "newIssue": "New issue",
+    "emptyCta": "Start your first issue",
+    "openHeading": "Open",
+    "closedHeading": "Closed"
+  },
+  "newCase": {
+    "title": "New issue",
+    "description": "Give your issue a short name. You can change it later.",
+    "label": "Issue name",
+    "hint": "For example, \"Comments from my supervisor\". You don't need to use real names.",
+    "required": "Enter a name for this issue.",
+    "create": "Create issue",
+    "creating": "Creating…"
   },
   "case": {
     "back": "Back to My issues",
+    "rename": "Rename",
+    "save": "Save",
+    "saving": "Saving…",
+    "closeIssue": "Close issue",
+    "reopenIssue": "Reopen issue",
+    "closedBadge": "Closed",
+    "statusClosed": "Issue closed.",
+    "statusReopened": "Issue reopened.",
     "timeline": "Timeline",
     "timelineEmpty": "Nothing on your timeline yet.",
     "nextSteps": "Things you can do",
