@@ -69,9 +69,29 @@
     "emptyCta": "Créer votre premier dossier",
     "openHeading": "Ouverts",
     "closedHeading": "Fermés",
-    "eyebrow": "Vos dossiers",
     "overviewLabel": "Aperçu de la chronologie",
-    "openIssue": "Ouvrir le dossier"
+    "openIssue": "Ouvrir le dossier",
+    "updatedLabel": "Dernière mise à jour",
+    "columnIssue": "Dossier",
+    "columnUpdated": "Dernière mise à jour",
+    "help": {
+      "label": "Aide et ressources",
+      "lawyerTitle": "Parler à un avocat",
+      "lawyerText": "Parcourez les cabinets vérifiés. Un cabinet ne voit un dossier que si vous choisissez de le partager.",
+      "lawyerLink": "Trouver un avocat",
+      "urgentTitle": "Besoin d'aide maintenant?",
+      "privacyTitle": "Vos dossiers sont privés",
+      "privacyText": "Vous seul pouvez les voir, sauf si vous en partagez un avec un cabinet. Vous pouvez arrêter le partage à tout moment.",
+      "danger": "En danger?",
+      "call911": "Composez le 911",
+      "support": "Soutien en tout temps :",
+      "call988": "Appelez ou textez le 988"
+    },
+    "greeting": {
+      "hello": "Bonjour, {{name}}.",
+      "helloNoName": "Bonjour.",
+      "text": " Reprenez là où vous en étiez, ou commencez un nouveau dossier. Je suis là si vous avez besoin de moi."
+    }
   },
   "timeline": {
     "chatSession": "Séance de discussion",

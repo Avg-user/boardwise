@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate } from 'react-router-dom'
 import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import { useSignIn } from '../auth/useSignIn.ts'
+import { Owl } from '../components/brand/Owl.tsx'
 import WorkplaceScene from '../components/site/WorkplaceScene.tsx'
 
 function LoginPage() {
@@ -9,6 +11,8 @@ function LoginPage() {
   const { user } = useCurrentUser()
   const { username, setUsername, password, setPassword, error, isSubmitting, handleSubmit } =
     useSignIn()
+  // The owl covers its eyes while the password field has focus.
+  const [typingPassword, setTypingPassword] = useState(false)
 
   if (user && !isSubmitting) {
     return <Navigate to={getRoleHome(user.role)} replace />
@@ -18,7 +22,8 @@ function LoginPage() {
 
   return (
     <div className="auth-split">
-      <div className="auth-page">
+      <div className="auth-page auth-page--perch">
+        <Owl className="owl--perch" wave followPointer coverEyes={typingPassword} />
         <title>{`${title} · ${t('app.name')}`}</title>
         <p className="eyebrow">{t('auth.eyebrow')}</p>
         <h1>{title}</h1>
@@ -44,6 +49,8 @@ function LoginPage() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              onFocus={() => setTypingPassword(true)}
+              onBlur={() => setTypingPassword(false)}
             />
           </div>
           {error && (

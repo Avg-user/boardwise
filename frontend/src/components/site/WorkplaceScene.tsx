@@ -187,30 +187,4 @@ function WorkplaceScene() {
   )
 }
 
-/** A small parked van for empty states. */
-export function MiniVan() {
-  return (
-    <svg className="mini-van" viewBox="-2 0 104 58" aria-hidden="true" focusable="false">
-      <DeliveryVan className="van--idle" />
-    </svg>
-  )
-}
-
-/** Safety shield with a check mark, used as the logo mark. */
-export function SafetyMark() {
-  return (
-    <svg className="safety-mark" viewBox="0 0 24 28" aria-hidden="true" focusable="false">
-      <path d="M12 1 L23 5 V13 Q23 22 12 27 Q1 22 1 13 V5 Z" fill="currentColor" />
-      <path
-        d="M7 14 L11 18 L17 9"
-        fill="none"
-        stroke="var(--color-on-primary)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 export default WorkplaceScene

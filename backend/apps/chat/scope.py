@@ -51,7 +51,9 @@ _ARITHMETIC = re.compile(
 _WORKPLACE = re.compile(
     r"\b(boss|manager|supervisor|employer|cowork\w*|colleague|work(ing|ed|place)?|job|shift|overtime|"
     r"pa(y|id)|wage|salary|fired|terminat\w*|harass\w*|bull(y|ied|ying)|discriminat\w*|unsafe|injur\w*|"
-    r"hr|union|complaint|case|incident|patron|travail\w*|emploi\w*|harc[eè]lement|coll[eè]gue)\b",
+    r"hr|union|complaint|case|incident|patron|travail\w*|emploi\w*|harc[eè]lement|coll[eè]gue|"
+    r"law|laws|legal|regulations?|rights?|ohs|osha|wcb|safety|noise|minimum wage|break|leave|vacation|"
+    r"holiday|contract|benefits?|loi|droits?|r[eè]glement\w*|s[eé]curit[eé]|salaire)\b",
     re.IGNORECASE,
 )
 # A reply that offers to write code, even without any code in it yet. Kept narrow on purpose:
@@ -64,9 +66,14 @@ _CODE_OFFER = re.compile(
 )
 
 
+def is_workplace_related(message: str) -> bool:
+    """True when a message clearly mentions work or workplace law."""
+    return bool(_WORKPLACE.search(message))
+
+
 def is_off_topic_request(message: str) -> bool:
     """Checked BEFORE the model. Errs towards letting messages through; the reply check is the backstop."""
-    if _WORKPLACE.search(message):
+    if is_workplace_related(message):
         return False
     return bool(_CODE_REQUEST.search(message) or _ARITHMETIC.match(message))
 
