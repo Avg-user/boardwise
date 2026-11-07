@@ -55,6 +55,82 @@ npm run lint
 
 Configuration comes from the root `.env` (copy `.env.example`). Never commit `.env`.
 
+## Current state (what exists today)
+
+### Running locally
+```bash
+docker compose up -d db redis                          # from repo root
+cd backend
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py seed_demo                   # add --reset to rebuild; refuses unless DEBUG=True
+.venv/bin/python manage.py runserver
+```
+Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`. The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm`.
+
+Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down before deploying).
+
+### Auth
+- DRF token auth (header `Authorization: Token <key>`) plus session auth.
+- `POST /api/auth/login/` → `{token, user}`. The `user` object includes `role`, which the frontend uses to route.
+- `POST /api/auth/logout/` deletes the token.
+- `GET/PATCH /api/auth/me/` (PATCH can change only `preferred_language`).
+
+### Models
+- `cases`:
+  - `Case` (owner, title, status). `Case.objects.accessible_by(user)` and `case.can_access(user)` are the single source of truth for access. `__str__` returns only the ID.
+  - `CaseShare` (case, grantee, granted_at, revoked_at). Only one active share per case and grantee. `revoke()` sets `revoked_at`; records are never deleted.
+  - `TimelineEntry` (occurred_at, title, description, source manual/ai/document, optional document).
+- `documents.Document`:
+  - Fields: file, original_name, content_type, extracted_text, status pending/processing/done/failed.
+  - Files are stored in `PRIVATE_MEDIA_ROOT` (`backend/private_media/`, gitignored). Encryption is still a TODO.
+- `chat`: `Conversation(case)` and `Message(role, content, flagged_crisis)`.
+- `tasks.Task` (title, notes, due_date, done, created_by_ai).
+- `lawfirms` and `hr` have no models yet.
+
+### Endpoints
+All endpoints require authentication.
+- `/api/cases/`:
+  - List shows only cases the user can access. Only victims can create.
+  - Responses include `is_owner` so the UI can hide edit controls.
+- Endpoints under `/api/cases/<case_pk>/`:
+  - `timeline/`, `tasks/`: full CRUD.
+  - `documents/`:
+    - Multipart upload (20 MB limit).
+    - `download/` action, which checks permission first.
+    - The detail response includes `extracted_text`.
+  - `conversations/`: has a `messages/` action, which is read-only for now.
+  - `shares/`:
+    - Owner only.
+    - Grant by `grantee` username; the grantee must be an HR or law-firm user.
+    - DELETE revokes the share and keeps the record.
+- Access behaviour, enforced in `apps/cases/permissions.py` (`CaseScopedMixin`):
+  - Strangers get **404**, not 403.
+  - Grantees are read-only: a write gets 403.
+
+### Chat service (separate, from PR #4)
+- `backend/chat_service/` is a FastAPI app on :8001 (`docker compose up backend --build`).
+  - It has no state and no auth: `POST /chat {province, messages}` returns the messages with the AI reply appended.
+  - Prompts live in `backend/prompts/`: `system.md`, plus `provinces/AB.md`, the only province so far.
+- **Known violations to fix:**
+  - It does not set `data_collection = "deny"` (the free model can't).
+  - It bypasses `apps/chat/llm.py`.
+  - It has no crisis check.
+  - It saves nothing.
+- Only Django should call it, never the frontend.
+
+### Tests
+`apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (25 tests, covering access and share rules).
+
+### Not built yet
+- Chat send endpoint or WebSocket. Proposed message format:
+  - `client → {type:"message", content}`
+  - `server → crisis | token(delta) | done(message_id) | error`
+- Celery tasks for document extraction and timeline generation (`TODO(llm)` in `documents/views.py`).
+- Law firm profiles and directory (`/api/lawfirms/`).
+- HR: anonymous reports and a dashboard that applies a minimum group size.
+- Encrypted file storage.
+
 ## Rules
 
 ### Privacy and access
