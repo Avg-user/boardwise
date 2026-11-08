@@ -105,3 +105,109 @@ class EmbeddingTests(TestCase):
         with mock.patch("apps.chat.llm.embed", side_effect=RuntimeError("down")):
             results = search("ZZ", "termination notice", k=1)
         self.assertEqual(results[0].section_ref, "56")
+
+
+# Two pages shaped like pypdf's text from a King's Printer consolidation.
+PDF_PAGES = [
+    """Table of Contents
+Part 1
+Noise
+ 1 Definitions
+ 2 Worker exposure to noise
+""",
+    """   
+Section 1  AR 191/2021 
+ 
+TEST SAFETY CODE 
+ 
+3
+Part 1
+Noise
+Definitions
+1   In this Code, “noise” means sound energy.
+AR 191/2021 s1
+Resolving doubts about
+exposure
+2(1)  An employer must ensure exposure does not exceed the limits
+in Schedule 3.
+(2)  Subject to section 1, this applies everywhere.
+AR 191/2021 s2;242/2022
+""",
+    """   
+Section 2  AR 191/2021 
+ 
+TEST SAFETY CODE 
+ 
+4
+Division 2
+Records
+Keeping records
+3   Records are kept for 2 years.
+Schedules
+Schedule 3
+Noise
+Table 1
+Noise exposure limits
+[ See sections 2 ]
+85 8 hours
+""",
+]
+
+
+class PdfToMarkdownTests(TestCase):
+    def setUp(self):
+        from .pdf import statute_to_markdown
+        self.md = statute_to_markdown(PDF_PAGES, "Test Safety Code")
+
+    def test_structure(self):
+        headings = [l for l in self.md.splitlines() if l.startswith("#")]
+        self.assertEqual(headings, [
+            "# Test Safety Code",
+            "## Part 1 — Noise",
+            "#### 1 Definitions",
+            "#### 2 Resolving doubts about exposure",
+            "### Division 2 — Records",
+            "#### 3 Keeping records",
+            "## Schedule 3 — Noise",
+            "#### Table 1 — Noise exposure limits",
+        ])
+
+    def test_drops_contents_page_headers_and_history(self):
+        self.assertNotIn("Table of Contents", self.md)
+        self.assertNotIn("TEST SAFETY CODE", self.md)
+        self.assertNotIn("AR 191/2021", self.md)
+
+    def test_chunks_and_references(self):
+        chunks = chunk_markdown(self.md)
+        self.assertEqual([c.section_ref for c in chunks], ["1", "2", "3", "Schedule 3"])
+        self.assertEqual(find_section_refs(chunks[1].text), {"1", "Schedule 3"})
+
+    def test_rejects_other_pdfs(self):
+        from .pdf import statute_to_markdown
+        with self.assertRaises(ValueError):
+            statute_to_markdown(["Just a letter.\nNothing numbered here."], "Letter")
+
+
+@override_settings(EMBEDDING_MODEL="")
+class StatuteGraphAndRankingTests(TestCase):
+    def test_schedule_links_back_and_documents_stay_separate(self):
+        from .pdf import statute_to_markdown
+        ingest_markdown("ZZ", "code", "Test Safety Code", statute_to_markdown(PDF_PAGES, "Test Safety Code"))
+        ingest_markdown("ZZ", "act", "Test Act", DOC)  # also has sections 23, 24...
+        edges = {(e.from_chunk.source.slug, e.from_chunk.section_ref, e.to_chunk.source.slug, e.to_chunk.section_ref)
+                 for e in LawReference.objects.select_related("from_chunk__source", "to_chunk__source")}
+        self.assertIn(("code", "2", "code", "Schedule 3"), edges)
+        self.assertIn(("code", "Schedule 3", "code", "2"), edges)
+        self.assertIn(("code", "2", "code", "1"), edges)
+        self.assertTrue(all(a == b for a, _, b, _ in edges), "edges never cross documents")
+        # Finding s. 2 brings in the table; a schedule is labelled by its heading, not "s. Schedule 3".
+        prompt = system_prompt("ZZ", "exposure limits")
+        self.assertIn("85 8 hours", prompt)
+        self.assertNotIn("s. Schedule", prompt)
+
+    def test_rare_terms_outrank_common_ones(self):
+        # "health" and "safety" are in nearly every section, as in the real OHS Code; "noise" is in one.
+        common = "\n\n".join(f"## Section {n} Health and safety committees\nHealth and safety rules." for n in range(1, 31))
+        ingest_markdown("ZZ", "act", "Act", f"# Act\n\n{common}\n\n## Section 99 Noise\nNoise rules apply.\n")
+        results = search("ZZ", "occupational health and safety rules about noise", k=1)
+        self.assertEqual(results[0].section_ref, "99")
