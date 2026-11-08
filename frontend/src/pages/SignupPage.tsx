@@ -9,11 +9,16 @@ import { CURRENT_USER_KEY, queryClient } from '../queryClient.ts'
 
 const MIN_PASSWORD_LENGTH = 8
 
-const ROLE_OPTIONS = [
-  { value: 'victim', labelKey: 'auth.roles.victim', hintKey: 'auth.roles.victimHint' },
-  { value: 'hr', labelKey: 'auth.roles.hr', hintKey: 'auth.roles.hrHint' },
+// Workers sign up on /signup with no role question. HR boards and law firms sign up on
+// /partners/signup. Law firms stay hidden from workers until an admin verifies them.
+const PARTNER_ROLES = [
   { value: 'law_firm', labelKey: 'auth.roles.lawFirm', hintKey: 'auth.roles.lawFirmHint' },
+  { value: 'hr', labelKey: 'auth.roles.hr', hintKey: 'auth.roles.hrHint' },
 ] as const satisfies readonly { value: UserRole; labelKey: string; hintKey: string }[]
+
+type SignupPageProps = {
+  audience?: 'worker' | 'partner'
+}
 
 type FieldErrors = { username?: string; password?: string; confirm?: string; form?: string }
 
@@ -21,14 +26,15 @@ function firstMessage(value: unknown): string | undefined {
   return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined
 }
 
-function SignupPage() {
+function SignupPage({ audience = 'worker' }: SignupPageProps) {
   const { t, i18n } = useTranslation()
   const { user } = useCurrentUser()
   const navigate = useNavigate()
+  const isPartner = audience === 'partner'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [role, setRole] = useState<UserRole>('victim')
+  const [role, setRole] = useState<UserRole>(isPartner ? 'law_firm' : 'victim')
   const [errors, setErrors] = useState<FieldErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -67,9 +73,7 @@ function SignupPage() {
       })
     } catch (caught) {
       setIsSubmitting(false)
-      if (caught instanceof ApiError && (caught.status === 404 || caught.status === 405)) {
-        setErrors({ form: t('auth.signupUnavailable') })
-      } else if (caught instanceof ApiError && caught.status === 400) {
+      if (caught instanceof ApiError && caught.status === 400) {
         const data = (caught.data ?? {}) as Record<string, unknown>
         const fields = {
           username: firstMessage(data.username),
@@ -85,34 +89,39 @@ function SignupPage() {
     }
   }
 
-  const title = t('auth.createAccount')
+  const title = isPartner ? t('auth.partnerSignUpTitle') : t('auth.createAccount')
 
   return (
     <div className="auth-page">
       <title>{`${title} · ${t('app.name')}`}</title>
+      {isPartner && <p className="eyebrow">{t('partners.eyebrow')}</p>}
       <h1>{title}</h1>
-      <p className="page-description">{t('auth.signUpDescription')}</p>
+      <p className="page-description">
+        {isPartner ? t('auth.partnerSignUpDescription') : t('auth.signUpDescription')}
+      </p>
       <form className="form" onSubmit={handleSubmit} noValidate>
-        <fieldset className="field">
-          <legend>{t('auth.roleQuestion')}</legend>
-          <div className="choice-list">
-            {ROLE_OPTIONS.map((option) => (
-              <label key={option.value} className="choice">
-                <input
-                  type="radio"
-                  name="role"
-                  value={option.value}
-                  checked={role === option.value}
-                  onChange={() => setRole(option.value)}
-                />
-                <span>
-                  <span className="choice__label">{t(option.labelKey)}</span>
-                  <span className="field-hint">{t(option.hintKey)}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {isPartner && (
+          <fieldset className="field">
+            <legend>{t('auth.partnerRoleQuestion')}</legend>
+            <div className="choice-list">
+              {PARTNER_ROLES.map((option) => (
+                <label key={option.value} className="choice">
+                  <input
+                    type="radio"
+                    name="role"
+                    value={option.value}
+                    checked={role === option.value}
+                    onChange={() => setRole(option.value)}
+                  />
+                  <span>
+                    <span className="choice__label">{t(option.labelKey)}</span>
+                    <span className="field-hint">{t(option.hintKey)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <div className="field">
           <label htmlFor="signup-username">{t('auth.username')}</label>
           <input
@@ -178,7 +187,19 @@ function SignupPage() {
         </button>
       </form>
       <p className="auth-switch">
-        {t('auth.haveAccount')} <Link to="/login">{t('auth.signIn')}</Link>
+        {t('auth.haveAccount')}{' '}
+        <Link to={isPartner ? '/partners/login' : '/login'}>{t('auth.signIn')}</Link>
+      </p>
+      <p className="auth-switch">
+        {isPartner ? (
+          <>
+            {t('partners.notPartner')} <Link to="/signup">{t('auth.workerSignUpLink')}</Link>
+          </>
+        ) : (
+          <>
+            {t('partners.prompt')} <Link to="/partners/signup">{t('auth.partnerSignUpLink')}</Link>
+          </>
+        )}
       </p>
     </div>
   )

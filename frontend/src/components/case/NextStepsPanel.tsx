@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createTask, listTasks, updateTask } from '../../api/tasks.ts'
 import type { Task } from '../../api/types.ts'
 import { useConversation } from './useConversation.ts'
+
+/** The backend's limit for task titles. */
+const MAX_STEP_LENGTH = 200
 
 type NextStepsPanelProps = {
   caseId: number
@@ -14,6 +18,30 @@ function NextStepsPanel({ caseId, canEdit }: NextStepsPanelProps) {
   const queryClient = useQueryClient()
   const queryKey = ['cases', caseId, 'tasks']
   const { messages } = useConversation(caseId)
+  const [newStep, setNewStep] = useState('')
+  // For the slide animation: each row's element, and where each row sat last time.
+  const rowRefs = useRef(new Map<number, HTMLLIElement>())
+  const lastTops = useRef(new Map<number, number>())
+
+  // When the backend's order moves a step (finished steps go last), slide it from its old
+  // place to the new one instead of jumping. Positions are measured within the list, so
+  // scrolling the page doesn't count as movement.
+  useLayoutEffect(() => {
+    const reduceMotion = document.documentElement.dataset.motion === 'reduce'
+    const tops = new Map<number, number>()
+    rowRefs.current.forEach((row, id) => {
+      const top = row.offsetTop
+      tops.set(id, top)
+      const previous = lastTops.current.get(id)
+      if (!reduceMotion && previous !== undefined && previous !== top) {
+        row.animate(
+          [{ transform: `translateY(${previous - top}px)` }, { transform: 'translateY(0)' }],
+          { duration: 480, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
+        )
+      }
+    })
+    lastTops.current = tops
+  })
   const { data: tasks, isLoading, isError } = useQuery({
     queryKey,
     queryFn: () => listTasks(caseId),
@@ -41,6 +69,13 @@ function NextStepsPanel({ caseId, canEdit }: NextStepsPanelProps) {
     onSuccess: refresh,
   })
 
+  function handleAddStep(event: FormEvent) {
+    event.preventDefault()
+    const title = newStep.trim()
+    if (!title || addTask.isPending) return
+    addTask.mutate(title, { onSuccess: () => setNewStep('') })
+  }
+
   const existingTitles = new Set(tasks?.map((task) => task.title))
   const suggestions = [
     ...new Set(
@@ -63,7 +98,13 @@ function NextStepsPanel({ caseId, canEdit }: NextStepsPanelProps) {
         <>
           <ul className="checklist">
             {tasks.map((task) => (
-              <li key={task.id}>
+              <li
+                key={task.id}
+                ref={(row) => {
+                  if (row) rowRefs.current.set(task.id, row)
+                  else rowRefs.current.delete(task.id)
+                }}
+              >
                 <label>
                   <input
                     type="checkbox"
@@ -82,6 +123,28 @@ function NextStepsPanel({ caseId, canEdit }: NextStepsPanelProps) {
             {t('case.progress', { done: doneCount, total: tasks.length })}
           </p>
         </>
+      )}
+      {canEdit && tasks && (
+        <form className="add-step" onSubmit={handleAddStep}>
+          <label className="visually-hidden" htmlFor={`add-step-${caseId}`}>
+            {t('case.addStepLabel')}
+          </label>
+          <input
+            id={`add-step-${caseId}`}
+            maxLength={MAX_STEP_LENGTH}
+            autoComplete="off"
+            placeholder={t('case.addStepPlaceholder')}
+            value={newStep}
+            onChange={(event) => setNewStep(event.target.value)}
+          />
+          <button
+            type="submit"
+            className="button-quiet"
+            disabled={addTask.isPending || !newStep.trim()}
+          >
+            {t('case.addStep')}
+          </button>
+        </form>
       )}
       {canEdit && tasks && suggestions.length > 0 && (
         <div className="suggestions">
