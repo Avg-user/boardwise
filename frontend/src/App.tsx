@@ -20,6 +20,7 @@ function App() {
         <Route path="login" element={<LoginPage />} />
         <Route path="signup" element={<SignupPage />} />
         <Route path="partners/login" element={<PartnerLoginPage />} />
+        <Route path="partners/signup" element={<SignupPage audience="partner" />} />
         <Route element={<RequireAuth />}>
           {/* Shared cases open here for every role; the API decides who can see each case. */}
           <Route path="cases/:caseId" element={<CasePage />} />

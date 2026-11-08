@@ -18,8 +18,7 @@ export type SignupInput = {
   preferred_language: string
 }
 
-// PROPOSED: the backend has no signup route yet, so this currently returns a 404.
-// The expected response is the same as login.
+/** Creates an account and signs it in. The response is the same as login's. */
 export async function signup(input: SignupInput): Promise<User> {
   const { token, user } = await request<LoginResponse>('/auth/register/', {
     method: 'POST',

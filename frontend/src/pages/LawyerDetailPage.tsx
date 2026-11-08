@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { listCases } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
 import { getFirm, listCaseMatches, requestMatch } from '../api/lawfirms.ts'
@@ -14,6 +14,11 @@ function LawyerDetailPage() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const firmId = Number(useParams().firmId)
+  const fromState: unknown = useLocation().state
+  const backSearch =
+    typeof fromState === 'object' && fromState !== null && 'directorySearch' in fromState
+      ? String(fromState.directorySearch)
+      : ''
   const firmQuery = useQuery({ queryKey: ['lawfirms', 'detail', firmId], queryFn: () => getFirm(firmId) })
   const casesQuery = useQuery({ queryKey: ['cases'], queryFn: listCases })
   const ownCases = (casesQuery.data ?? []).filter((item) => item.is_owner && item.status === 'open')
@@ -62,7 +67,8 @@ function LawyerDetailPage() {
   return (
     <>
       <title>{`${firm.name} · ${t('app.name')}`}</title>
-      <Link className="back-link" to="/lawyers">
+      {/* Back to the directory with the filters it had, when we came from there. */}
+      <Link className="back-link" to={{ pathname: '/lawyers', search: backSearch }}>
         {t('lawyers.back')}
       </Link>
       <p className="eyebrow">{t('lawyers.verifiedFirm')}</p>

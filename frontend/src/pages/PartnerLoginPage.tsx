@@ -60,6 +60,9 @@ function PartnerLoginPage() {
           </button>
         </form>
         <p className="auth-switch">
+          {t('auth.noAccount')} <Link to="/partners/signup">{t('auth.partnerSignUpLink')}</Link>
+        </p>
+        <p className="auth-switch">
           {t('partners.notPartner')} <Link to="/login">{t('partners.workerSignIn')}</Link>
         </p>
       </div>

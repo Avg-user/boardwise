@@ -501,10 +501,24 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                 ? t('chat.dictation.connecting')
                 : ''}
           </p>
-          <p className="chat__notice">{t('chat.notice')}</p>
         </form>
       ) : (
         <p className="chat__notice">{t('case.readOnly')}</p>
+      )}
+
+      {/* Always at the bottom for the person writing. The crisis part steps aside while the
+          full crisis banner is open, so the same numbers aren't shown twice. */}
+      {canEdit && (
+        <p className="chat__notice chat__footnote">
+          <span>{t('chat.notice')}</span>
+          {!showCrisisBanner && (
+            <span className="chat__safety">
+              {t('chat.safety.danger')} <a href="tel:911">{t('chat.safety.call911')}</a>
+              {' · '}
+              <a href="tel:988">{t('chat.safety.call988')}</a>
+            </span>
+          )}
+        </p>
       )}
     </div>
   )
