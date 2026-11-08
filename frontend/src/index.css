@@ -2,7 +2,7 @@
  * Boardwise styles.
  *
  * Look: warm paper and ink, white cards with hairline borders, safety yellow used sparingly (the
- * owl, the hazard tape on top of the header, the current-page underline, timeline dots). Actions
+ * owl, the current-page underline, timeline dots). Actions
  * are ink buttons; partners (HR, law firms) swap the action and brand colours for their own.
  *
  * Theme and motion are chosen by the app, not read from the device directly: src/display.ts
@@ -296,20 +296,6 @@ main:focus {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-}
-
-/* Hazard tape along the top: the one bit of workplace-safety decoration. */
-.app-shell::before {
-  content: '';
-  display: block;
-  height: 4px;
-  background: repeating-linear-gradient(-45deg, var(--color-primary) 0 9px, #18191c 9px 18px);
-}
-
-/* Partners get a calm band in their own colour instead. */
-.app-shell[data-theme]::before {
-  height: 3px;
-  background: var(--color-brand);
 }
 
 .skip-link {
