@@ -182,7 +182,19 @@
     "newChatShort": "Nouvelle discussion",
     "newChatTitle": "Commencer une nouvelle discussion?",
     "newChatMessage": "Votre discussion en cours du {{date}} sera fermée, car chaque dossier garde une seule discussion ouverte à la fois. Vous pourrez toujours la lire et la télécharger à partir de la chronologie.",
-    "newChatConfirm": "La fermer et recommencer"
+    "newChatConfirm": "La fermer et recommencer",
+    "dictation": {
+      "start": "Parler",
+      "stop": "Arrêter",
+      "connecting": "Démarrage du microphone…",
+      "listening": "À l'écoute. Commencez à parler.",
+      "micDenied": "Nous n'avons pas pu utiliser votre microphone. Vérifiez que votre navigateur autorise ce site à l'utiliser.",
+      "busy": "La saisie vocale est occupée en ce moment. Réessayez dans une minute ou tapez votre message.",
+      "unavailable": "La saisie vocale n'est pas disponible. Vous pouvez taper votre message.",
+      "offline": "La saisie vocale ne peut pas se connecter pour le moment. Réessayez plus tard ou tapez votre message.",
+      "tooLong": "La saisie vocale s'arrête après 3 minutes. Ce que vous avez dit jusqu'ici est dans la zone de texte.",
+      "failed": "La saisie vocale s'est arrêtée de façon inattendue. Ce que vous avez dit jusqu'ici est dans la zone de texte."
+    }
   },
   "transcript": {
     "download": "Télécharger la transcription",

@@ -182,7 +182,19 @@
     "newChatShort": "New chat",
     "newChatTitle": "Start a new chat?",
     "newChatMessage": "Your current chat from {{date}} will be closed, because each issue keeps one chat open at a time. You can still read and download it from the timeline.",
-    "newChatConfirm": "Close it and start new"
+    "newChatConfirm": "Close it and start new",
+    "dictation": {
+      "start": "Speak",
+      "stop": "Stop",
+      "connecting": "Starting the microphone…",
+      "listening": "Listening. Start speaking.",
+      "micDenied": "We couldn't use your microphone. Check that your browser allows this site to use it.",
+      "busy": "Voice typing is busy right now. Try again in a minute, or type your message.",
+      "unavailable": "Voice typing isn't available. You can type your message instead.",
+      "offline": "Voice typing can't connect right now. Try again later, or type your message.",
+      "tooLong": "Voice typing stops after 3 minutes. What you said so far is in the box.",
+      "failed": "Voice typing stopped unexpectedly. What you said so far is in the box."
+    }
   },
   "transcript": {
     "download": "Download transcript",

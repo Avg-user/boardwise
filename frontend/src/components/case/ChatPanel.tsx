@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { closeSession } from '../../api/closedSessions.ts'
@@ -9,6 +9,22 @@ import { sendChatMessage, usePendingSend, type PendingSend } from './chatSending
 import CrisisBanner from './CrisisBanner.tsx'
 import Markdown from './Markdown.tsx'
 import { NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
+import { useDictation } from './useDictation.ts'
+
+const DICTATION_ERRORS = {
+  micDenied: 'chat.dictation.micDenied',
+  busy: 'chat.dictation.busy',
+  unavailable: 'chat.dictation.unavailable',
+  offline: 'chat.dictation.offline',
+  tooLong: 'chat.dictation.tooLong',
+  failed: 'chat.dictation.failed',
+} as const
+
+/** Adds dictated text to the draft with a single space between them. */
+function appendText(draft: string, text: string): string {
+  const head = draft.trimEnd()
+  return head ? `${head} ${text}` : text
+}
 
 type ChatPanelProps = {
   caseId: number
@@ -81,11 +97,40 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   })
   const sessionDate = conversation ? dateTimeFormat.format(new Date(conversation.created_at)) : ''
   const canExport = canEdit && conversation !== null && messages.length > 0
-  const [draft, setDraft] = useState('')
+  const [draft, setDraftState] = useState('')
+  // Mirrors `draft` without waiting for a render, so send() sees text dictated just before it.
+  const draftRef = useRef('')
+  const setDraft = useCallback((update: string | ((current: string) => string)) => {
+    draftRef.current = typeof update === 'function' ? update(draftRef.current) : update
+    setDraftState(draftRef.current)
+  }, [])
   const [restoredFailure, setRestoredFailure] = useState<PendingSend | null>(null)
   const [dismissedCrisisId, setDismissedCrisisId] = useState<number | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const crisisRef = useRef<HTMLDivElement>(null)
+  const dictationBoxRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Grey words added on Stop. The server's final text replaces them, unless the person edited them.
+  const provisionalRef = useRef<string | null>(null)
+  const dictation = useDictation({
+    caseId,
+    language: i18n.resolvedLanguage ?? 'en',
+    onFinal: (text) =>
+      setDraft((current) => {
+        const provisional = provisionalRef.current
+        if (provisional === null) return appendText(current, text)
+        provisionalRef.current = null
+        if (!current.endsWith(provisional)) return current // edited since Stop: keep theirs
+        return appendText(current.slice(0, -provisional.length), text)
+      }),
+    onStop: (partial) => {
+      provisionalRef.current = partial
+      setDraft((current) => appendText(current, partial))
+    },
+  })
+  const isDictating = dictation.status !== 'idle'
+  const wasDictating = useRef(false)
 
   // A send keeps going if the person leaves; coming back shows it again.
   const isCaseBusy = pending?.status === 'sending'
@@ -105,8 +150,14 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   const sendFailed = pending?.status === 'failed'
   if (sendFailed && pending !== restoredFailure) {
     setRestoredFailure(pending)
-    setDraft(pending.content)
+    // State only here: refs can't be written during render. The effect below syncs draftRef.
+    setDraftState(pending.content)
   }
+
+  // Keeps draftRef in step when the draft is set without setDraft, as just above.
+  useEffect(() => {
+    draftRef.current = draft
+  }, [draft])
 
   // Once a new chat exists on the server, point the URL at it, so a retry stays in it.
   useEffect(() => {
@@ -130,9 +181,32 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
     }
   }, [showCrisisBanner, latestCrisisId])
 
-  function send() {
-    const content = draft.trim()
-    if (!content || isCaseBusy) {
+  // Keep the newest dictated words in view while the box grows.
+  useEffect(() => {
+    const box = dictationBoxRef.current
+    if (box) {
+      box.scrollTop = box.scrollHeight
+    }
+  }, [draft, dictation.partial])
+
+  // Back to the editable box when dictation ends, so corrections are one click away.
+  useEffect(() => {
+    if (wasDictating.current && !isDictating) {
+      textareaRef.current?.focus()
+    }
+    wasDictating.current = isDictating
+  }, [isDictating])
+
+  async function send() {
+    if (isCaseBusy) {
+      return
+    }
+    // Sending while dictating: stop, and wait up to a second for the last words.
+    if (isDictating) {
+      await Promise.race([dictation.stop(), new Promise((resolve) => setTimeout(resolve, 1000))])
+    }
+    const content = draftRef.current.trim()
+    if (!content) {
       return
     }
     setDraft('')
@@ -337,22 +411,82 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
               {t('chat.sendFailed')}
             </p>
           )}
+          {dictation.error && (
+            <p className="form-error" role="alert">
+              {t(DICTATION_ERRORS[dictation.error])}
+            </p>
+          )}
           <div className="composer">
-            <label className="visually-hidden" htmlFor="chat-message">
+            <label className="visually-hidden" htmlFor="chat-message" id="chat-message-label">
               {t('chat.messageLabel')}
             </label>
-            <textarea
-              id="chat-message"
-              rows={1}
-              placeholder={t('chat.placeholder')}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <button className="button" type="submit" disabled={isCaseBusy || !draft.trim()}>
+            {isDictating ? (
+              // Read-only while listening: finished words solid, the words still changing grey.
+              <div
+                ref={dictationBoxRef}
+                id="chat-message"
+                className="composer__dictation"
+                role="textbox"
+                aria-readonly="true"
+                aria-multiline="true"
+                aria-labelledby="chat-message-label"
+              >
+                {draft.trim() || dictation.partial ? (
+                  <>
+                    {draft.trimEnd()}
+                    {draft.trim() && dictation.partial ? ' ' : ''}
+                    {dictation.partial && (
+                      <span className="composer__partial">{dictation.partial}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="composer__partial">
+                    {dictation.status === 'connecting'
+                      ? t('chat.dictation.connecting')
+                      : t('chat.dictation.listening')}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                id="chat-message"
+                rows={1}
+                placeholder={t('chat.placeholder')}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            )}
+            {dictation.available && (
+              <button
+                className={isDictating ? 'button-quiet composer__mic composer__mic--on' : 'button-quiet composer__mic'}
+                type="button"
+                aria-pressed={isDictating}
+                disabled={isCaseBusy}
+                onClick={() => {
+                  if (isDictating) {
+                    void dictation.stop()
+                  } else {
+                    provisionalRef.current = null
+                    void dictation.start()
+                  }
+                }}
+              >
+                {isDictating ? t('chat.dictation.stop') : t('chat.dictation.start')}
+              </button>
+            )}
+            <button
+              className="button"
+              type="submit"
+              disabled={isCaseBusy || (!draft.trim() && !isDictating)}
+            >
               {t('chat.send')}
             </button>
           </div>
+          <p className="visually-hidden" role="status">
+            {dictation.status === 'listening' ? t('chat.dictation.listening') : ''}
+          </p>
           <p className="chat__notice">{t('chat.notice')}</p>
         </form>
       ) : (

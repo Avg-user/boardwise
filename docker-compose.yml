@@ -13,6 +13,23 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+  # Voice dictation (speech/). Idle until someone dictates: the whisper model loads on the
+  # first session and unloads after SPEECH_IDLE_UNLOAD_S seconds without one.
+  speech:
+    build: ./speech
+    environment:
+      SPEECH_TICKET_SECRET: ${SPEECH_TICKET_SECRET:-}
+      SPEECH_MODEL: ${SPEECH_MODEL:-base}
+      SPEECH_THREADS: ${SPEECH_THREADS:-4}  # keep equal to cpus below
+      SPEECH_MAX_SESSIONS: ${SPEECH_MAX_SESSIONS:-2}
+      SPEECH_IDLE_UNLOAD_S: ${SPEECH_IDLE_UNLOAD_S:-300}
+      DICTATION_MAX_SECONDS: ${DICTATION_MAX_SECONDS:-180}
+    ports:
+      - "127.0.0.1:9100:9100"  # local only; the frontend reaches it through Vite's /speech proxy
+    volumes:
+      - speech-models:/models  # model weights download once
+    cpus: ${SPEECH_CPUS:-4}
 
 volumes:
   pgdata:
+  speech-models:
