@@ -1,6 +1,11 @@
 /* Workplace safety theme: safety-sign colours (yellow caution, orange warning, green first aid), grid paper. */
+/*
+ * Theme and motion are chosen by the app, not read from the device directly: src/display.ts
+ * sets data-color-scheme ('light' or 'dark') and data-motion ('reduce') on <html>, from the
+ * person's Display settings or, by default, their device settings.
+ */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Light: concrete paper */
   --color-bg: #f1eee6;
@@ -59,50 +64,50 @@
   --shadow-block: 4px 4px 0 var(--color-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark: asphalt */
-    --color-bg: #141518;
-    --color-surface: #1d1f23;
-    --color-raised: #272a30;
-    --color-text: #f2efe6;
-    --color-text-muted: #a9a59b;
-    --color-divider: #30333a;
-    --color-control: #60646d;
-    --color-primary: #ffc629;
-    --color-primary-hover: #ffd65c;
-    --color-on-primary: #141518;
-    --color-accent: #ff6a13;
-    --color-focus: #ffc629;
-    --color-tint: #33290f;
-    --color-tint-text: #ffd65c;
-    --color-crisis-bg: #3a1513;
-    --color-crisis-text: #ffb4ab;
-    --color-success: #8fd16a;
-    --color-grid: rgb(255 255 255 / 0.035);
-    --color-elevated: #272a30;
+:root[data-color-scheme='dark'] {
+  color-scheme: dark;
 
-    --color-safe: #4cc27e;
+  /* Dark: asphalt */
+  --color-bg: #141518;
+  --color-surface: #1d1f23;
+  --color-raised: #272a30;
+  --color-text: #f2efe6;
+  --color-text-muted: #a9a59b;
+  --color-divider: #30333a;
+  --color-control: #60646d;
+  --color-primary: #ffc629;
+  --color-primary-hover: #ffd65c;
+  --color-on-primary: #141518;
+  --color-accent: #ff6a13;
+  --color-focus: #ffc629;
+  --color-tint: #33290f;
+  --color-tint-text: #ffd65c;
+  --color-crisis-bg: #3a1513;
+  --color-crisis-text: #ffb4ab;
+  --color-success: #8fd16a;
+  --color-grid: rgb(255 255 255 / 0.035);
+  --color-elevated: #272a30;
 
-    --scene-steel: #8a8f99;
-    --scene-ink: #e6e2d8;
-    --scene-glass: #3f6b85;
-    --scene-road: #0d0e10;
-    --scene-sidewalk: #34373d;
-    --scene-building: #2d3036;
-    --scene-building-light: #383c43;
-    --scene-building-warm: #4a3d30;
-    --scene-building-dark: #1c1e22;
-    --scene-window: #23272e;
-    --scene-window-lit: #ffd65c;
-    --scene-door: #5c4a38;
-    --scene-van: #e9e6dc;
-    --scene-scrubs: #3fb3ac;
-    --scene-blazer: #6a7bb0;
-    --scene-box: #b08550;
+  --color-safe: #4cc27e;
 
-    --shadow-block: 4px 4px 0 #000;
-  }
+  --scene-steel: #8a8f99;
+  --scene-ink: #e6e2d8;
+  --scene-glass: #3f6b85;
+  --scene-road: #0d0e10;
+  --scene-sidewalk: #34373d;
+  --scene-building: #2d3036;
+  --scene-building-light: #383c43;
+  --scene-building-warm: #4a3d30;
+  --scene-building-dark: #1c1e22;
+  --scene-window: #23272e;
+  --scene-window-lit: #ffd65c;
+  --scene-door: #5c4a38;
+  --scene-van: #e9e6dc;
+  --scene-scrubs: #3fb3ac;
+  --scene-blazer: #6a7bb0;
+  --scene-box: #b08550;
+
+  --shadow-block: 4px 4px 0 #000;
 }
 
 *,
@@ -166,7 +171,8 @@ main:focus {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 10;
+  /* Above the header (z-index 20), which it overlaps when focused. */
+  z-index: 40;
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
   background: var(--color-surface);
@@ -201,6 +207,10 @@ main:focus {
 
 
 header {
+  /* The blur makes the header its own layer. Lift it above page content, or sticky panels
+     further down (such as the My issues side column) paint over the header menu. */
+  position: relative;
+  z-index: 20;
   border-bottom: 1px solid var(--color-divider);
   background: color-mix(in srgb, var(--color-bg) 88%, transparent);
   backdrop-filter: blur(6px);
@@ -383,16 +393,6 @@ button.button {
   align-items: center;
   gap: 0.25rem 0.75rem;
   margin-inline-start: auto;
-}
-
-.app-tools .language-switcher {
-  margin-inline-start: 0;
-}
-
-.app-username {
-  overflow-wrap: anywhere;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
 }
 
 /* Sign in and create account */
@@ -624,15 +624,13 @@ button.button {
   background: rgb(26 27 30 / 0.5);
 }
 
-@media (prefers-color-scheme: dark) {
-  .dialog::backdrop {
-    background: rgb(0 0 0 / 0.65);
-  }
+:root[data-color-scheme='dark'] .dialog::backdrop {
+  background: rgb(0 0 0 / 0.65);
+}
 
-  /* A black shadow vanishes on asphalt, so the edge carries the separation. */
-  .dialog {
-    border-color: var(--color-text-muted);
-  }
+/* A black shadow vanishes on asphalt, so the edge carries the separation. */
+:root[data-color-scheme='dark'] .dialog {
+  border-color: var(--color-text-muted);
 }
 
 .dialog__body {
@@ -1619,27 +1617,25 @@ p.message--user {
   --color-tint-text: #6e560f;
 }
 
-@media (prefers-color-scheme: dark) {
-  .app-shell[data-theme='partner'],
-  .app-shell[data-theme='hr'] {
-    --color-primary: #8aa2ff;
-    --color-primary-hover: #a9bbff;
-    --color-on-primary: #0f1530;
-    --color-accent: #8aa2ff;
-    --color-focus: #8aa2ff;
-    --color-tint: #1e2442;
-    --color-tint-text: #a9bbff;
-  }
+:root[data-color-scheme='dark'] .app-shell[data-theme='partner'],
+:root[data-color-scheme='dark'] .app-shell[data-theme='hr'] {
+  --color-primary: #8aa2ff;
+  --color-primary-hover: #a9bbff;
+  --color-on-primary: #0f1530;
+  --color-accent: #8aa2ff;
+  --color-focus: #8aa2ff;
+  --color-tint: #1e2442;
+  --color-tint-text: #a9bbff;
+}
 
-  .app-shell[data-theme='firm'] {
-    --color-primary: #d9b44a;
-    --color-primary-hover: #e8c96a;
-    --color-on-primary: #17140a;
-    --color-accent: #e8c96a;
-    --color-focus: #e8c96a;
-    --color-tint: #2e2712;
-    --color-tint-text: #e8c96a;
-  }
+:root[data-color-scheme='dark'] .app-shell[data-theme='firm'] {
+  --color-primary: #d9b44a;
+  --color-primary-hover: #e8c96a;
+  --color-on-primary: #17140a;
+  --color-accent: #e8c96a;
+  --color-focus: #e8c96a;
+  --color-tint: #2e2712;
+  --color-tint-text: #e8c96a;
 }
 
 /* Partners: calmer, more formal shapes */
@@ -2479,11 +2475,9 @@ h1,
   --owl-eye: #1d1a16;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --owl-body: #a5815d;
-    --owl-dark: #7d5f42;
-  }
+:root[data-color-scheme='dark'] {
+  --owl-body: #a5815d;
+  --owl-dark: #7d5f42;
 }
 
 .owl {
@@ -2752,4 +2746,251 @@ h1,
 
 .markdown a {
   overflow-wrap: anywhere;
+}
+
+/*
+ * Dropdowns. Last in the file so it wins over earlier select rules. A drawn chevron replaces
+ * the browser's own arrow, so it has room from the border and follows the text colour in
+ * both themes. Text is full size for readability.
+ */
+select,
+.field > select,
+.language-switcher select {
+  appearance: none;
+  min-height: 2.75rem;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.3;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.25rem) 50%,
+    calc(100% - 0.875rem) 50%;
+  background-size: 0.375rem 0.375rem;
+  background-repeat: no-repeat;
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Windows high contrast mode hides background images, so bring back the native arrow. */
+@media (forced-colors: active) {
+  select,
+  .field > select,
+  .language-switcher select {
+    appearance: auto;
+    background-image: none;
+    padding-inline-end: 0.75rem;
+  }
+}
+
+/* Header menu: one button for language, display settings and sign out. */
+.header-menu {
+  position: relative;
+}
+
+/* A round, borderless button (44px tap area). Only a soft background on hover or when open. */
+.header-menu__trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.header-menu__trigger:hover,
+.header-menu__trigger[aria-expanded='true'] {
+  background: var(--color-surface);
+}
+
+.header-menu__avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-tint);
+  color: var(--color-tint-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.header-menu__more {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+
+.header-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 0.75rem;
+  width: max-content;
+  min-width: 16rem;
+  max-width: calc(100vw - 2rem);
+  padding: 1rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  background: var(--color-elevated);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+  animation: pop-in 0.15s ease-out;
+}
+
+.header-menu__panel[hidden] {
+  display: none;
+}
+
+:root[data-color-scheme='dark'] .header-menu__panel {
+  border-color: var(--color-control);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+
+.header-menu__who {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.header-menu__who strong {
+  color: var(--color-text);
+}
+
+.header-menu .language-switcher {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.header-menu .language-switcher select {
+  width: 100%;
+}
+
+.header-menu__item {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.header-menu__item:hover {
+  background: var(--color-surface);
+}
+
+.header-menu__divider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+/*
+ * Transitions. Short and subtle: they show what changed without slowing anyone down.
+ * The crisis banner deliberately appears instantly. All of this is switched off by
+ * "Reduce motion" (or the device setting); see the end of the file.
+ */
+.button,
+.button-quiet,
+.link-button,
+.case-card,
+.timeline__session,
+.app-nav a,
+.case-tabs button,
+select,
+input,
+textarea,
+.composer {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.case-card:hover {
+  transform: translateX(2px);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* A new page fades in. */
+.page-enter {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Chat messages and the "thinking" reply rise in as they arrive. */
+.message {
+  animation: rise-in 0.22s ease-out;
+}
+
+/* Pop-ups open gently, with the page behind dimming. */
+.dialog[open] {
+  animation: pop-in 0.18s ease-out;
+}
+
+.dialog[open]::backdrop {
+  animation: fade-in 0.18s ease-out;
+}
+
+/* The My issues overview fades in for each issue. */
+.case-overview {
+  animation: fade-in 0.18s ease-out;
+}
+
+.timeline__item {
+  animation: fade-in 0.2s ease-out;
+}
+
+/*
+ * Reduce motion: set from the Display settings or the device. Turns off every animation and
+ * transition, including the street scene. Status still shows in words, such as "Stop" on the mic.
+ */
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after,
+:root[data-motion='reduce'] *::backdrop {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }

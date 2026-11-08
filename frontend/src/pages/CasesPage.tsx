@@ -208,7 +208,8 @@ function CasesPage() {
           </div>
           <div className="cases-side">
             <OwlGreeting name={user?.username} />
-            {previewed ? <CaseOverview item={previewed} /> : <HelpPanel />}
+            {/* Keyed by issue, so each preview fades in fresh. */}
+            {previewed ? <CaseOverview key={previewed.id} item={previewed} /> : <HelpPanel />}
           </div>
         </div>
       )}
