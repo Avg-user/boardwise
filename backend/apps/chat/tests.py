@@ -143,6 +143,20 @@ class SendMessageApiTests(APITestCase):
         self.assertEqual(r.data["reply"]["content"], REFUSALS["en"])
         self.assertEqual(self.convo.messages.count(), 2)
 
+    def test_workplace_question_marked_off_topic_is_retried(self, chat):
+        chat.side_effect = [fake_completion("[OFF_TOPIC]"), fake_completion("In BC the minimum wage is set by...")]
+        self.client.force_authenticate(self.victim)
+        r = self.client.post(self.url, {"content": "What is the minimum wage in BC?"}, format="json")
+        self.assertEqual(chat.call_count, 2)
+        self.assertEqual(r.data["reply"]["content"], "In BC the minimum wage is set by...")
+
+    def test_non_work_question_marked_off_topic_is_not_retried(self, chat):
+        chat.return_value = fake_completion("[OFF_TOPIC]")
+        self.client.force_authenticate(self.victim)
+        r = self.client.post(self.url, {"content": "Tell me a joke about cats"}, format="json")
+        self.assertEqual(chat.call_count, 1)
+        self.assertEqual(r.data["reply"]["content"], REFUSALS["en"])
+
     def test_reply_offering_code_is_refused(self, chat):
         chat.return_value = fake_completion("Absolutely—I'd be happy to help you write a Python program! "
                                             "Just describe the task and I'll provide the code.")

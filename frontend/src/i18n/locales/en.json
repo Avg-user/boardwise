@@ -18,8 +18,13 @@
   "nav": {
     "issues": "My issues",
     "lawyers": "Find a lawyer",
-    "hr": "HR board",
-    "firm": "Firm profile"
+    "hr": "Reports",
+    "firm": "Dashboard",
+    "portal": {
+      "hr": "HR board",
+      "law_firm": "Law firm"
+    },
+    "firmProfile": "Profile"
   },
   "auth": {
     "signIn": "Sign in",
@@ -64,9 +69,29 @@
     "emptyCta": "Start your first issue",
     "openHeading": "Open",
     "closedHeading": "Closed",
-    "eyebrow": "Your case files",
     "overviewLabel": "Timeline overview",
-    "openIssue": "Open issue"
+    "openIssue": "Open issue",
+    "updatedLabel": "Last updated",
+    "columnIssue": "Issue",
+    "columnUpdated": "Last updated",
+    "help": {
+      "label": "Help and resources",
+      "lawyerTitle": "Talk to a lawyer",
+      "lawyerText": "Browse verified firms. A firm only sees an issue if you choose to share it.",
+      "lawyerLink": "Find a lawyer",
+      "urgentTitle": "Need help now?",
+      "privacyTitle": "Your issues are private",
+      "privacyText": "Only you can see them, unless you share one with a firm. You can stop sharing at any time.",
+      "danger": "In danger?",
+      "call911": "Call 911",
+      "support": "Support any time:",
+      "call988": "Call or text 988"
+    },
+    "greeting": {
+      "hello": "Hi, {{name}}.",
+      "helloNoName": "Hi there.",
+      "text": " Pick up where you left off, or start a new issue. I'm here when you need me."
+    }
   },
   "timeline": {
     "chatSession": "Chat session",
@@ -133,7 +158,8 @@
       "chat": "Chat",
       "timeline": "Timeline",
       "steps": "Next steps"
-    }
+    },
+    "backPartner": "Back to dashboard"
   },
   "chat": {
     "aiLabel": "AI assistant",
@@ -181,26 +207,209 @@
     "notSent": "We didn't send this message to the AI assistant. You can come back to this chat whenever you're ready.",
     "hide": "Hide this message"
   },
-  "placeholder": {
-    "notice": "This screen is still being built."
-  },
-  "pages": {
-    "lawyers": {
-      "title": "Find a lawyer",
-      "description": "Browse law firms by area of expertise and choose who to contact."
-    },
-    "hr": {
-      "title": "HR board",
-      "description": "See anonymous reports, overall trends and job description reviews."
-    },
-    "firm": {
-      "title": "Firm profile",
-      "description": "Manage your firm's areas of expertise and case statistics."
-    }
-  },
   "notFound": {
     "title": "Page not found",
     "description": "This page doesn't exist or may have moved.",
     "back": "Go to My issues"
+  },
+  "partners": {
+    "prompt": "HR board or law firm?",
+    "link": "Partner sign-in",
+    "eyebrow": "For HR boards and law firms",
+    "signIn": "Partner sign in",
+    "description": "Sign in to your organization or firm account.",
+    "notPartner": "Signing in as a worker?",
+    "workerSignIn": "Go to the main sign-in",
+    "panelTitle": "What partners can see",
+    "hrTitle": "HR boards",
+    "hrPoint1": "Anonymous reports from people in your organization.",
+    "hrPoint2": "Trends, shown only once enough people have reported that no one can be singled out.",
+    "hrPoint3": "Never names or details that could identify someone.",
+    "firmTitle": "Law firms",
+    "firmPoint1": "Cases that a worker has chosen to share with your firm.",
+    "firmPoint2": "Read-only access, which the worker can take back at any time.",
+    "firmPoint3": "A profile workers can look at when choosing who to contact.",
+    "control": "Workers stay in control. Nothing about a case is shared without their permission."
+  },
+  "partnerHome": {
+    "upcomingTitle": "Coming to this dashboard",
+    "comingSoon": "Coming soon",
+    "sharedTitle": "Cases shared with you",
+    "sharedEmpty": "No worker has shared a case with your firm yet.",
+    "sharedMeta": "Updated {{date}}",
+    "readOnly": "Read-only",
+    "hr": {
+      "eyebrow": "HR board",
+      "title": "Reports dashboard",
+      "description": "Anonymous reports and trends from your organization, without names.",
+      "reportsTitle": "Anonymous reports",
+      "reportsText": "Read reports people chose to send to your board. Who sent them stays hidden.",
+      "trendsTitle": "Trends and red flags",
+      "trendsText": "See patterns by team or issue type, only when groups are large enough to keep people anonymous.",
+      "jobsTitle": "Job description review",
+      "jobsText": "Check job descriptions for wording that can lead to unsafe or unfair work."
+    },
+    "firm": {
+      "eyebrow": "Law firm",
+      "title": "Firm dashboard",
+      "description": "Cases workers have shared with you, and how your firm appears to people looking for help.",
+      "statsTitle": "Case statistics",
+      "statsText": "Show the kinds of cases your firm handles."
+    }
+  },
+  "lawyers": {
+    "eyebrow": "Verified law firms",
+    "title": "Find a lawyer",
+    "description": "Browse firms that help workers. They only see your case if you ask to connect and they accept.",
+    "filters": {
+      "search": "Search by name or city",
+      "area": "Area of law",
+      "language": "Language",
+      "any": "Any",
+      "free": "Free first consultation"
+    },
+    "empty": "No firms match these filters.",
+    "verified": "Verified",
+    "verifiedFirm": "Verified law firm",
+    "back": "Back to all firms",
+    "about": "About",
+    "feesTitle": "Fees",
+    "details": "Details",
+    "city": "City",
+    "provinces": "Provinces",
+    "languagesLabel": "Languages",
+    "experience": "Experience",
+    "years_one": "{{count}} year",
+    "years_other": "{{count}} years",
+    "website": "Website",
+    "fees": {
+      "freeConsultation": "Free first consultation",
+      "consultation": "First consultation: {{amount}}",
+      "hourlyRange": "{{min}}–{{max}} per hour",
+      "hourly": "{{amount}} per hour",
+      "flatFrom": "Flat fees from {{amount}}",
+      "contingency": "Contingency: {{percent}}% of what you recover",
+      "slidingScale": "Sliding scale based on income",
+      "legalAid": "Accepts legal aid",
+      "ask": "Ask the firm about their fees."
+    },
+    "connect": {
+      "title": "Ask to connect",
+      "intro": "Send this firm a short note. They see only your note until they accept.",
+      "case": "Which issue is this about?",
+      "note": "Your note (optional)",
+      "noteHint": "Describe the situation in general terms. You don't need to include names.",
+      "consent": "If the firm accepts, they can read this issue: its timeline, next steps and chat. You can stop sharing at any time from the issue page.",
+      "send": "Send request",
+      "sending": "Sending…",
+      "sent": "Request sent. We'll show the firm's answer on your issue page.",
+      "noCases": "Create an issue first, then you can ask a firm to look at it.",
+      "status": {
+        "pending": "You've already asked this firm about this issue. Waiting for their answer.",
+        "accepted": "This firm accepted your request and can read this issue."
+      }
+    },
+    "areas": {
+      "harassment": "Workplace harassment",
+      "discrimination": "Discrimination and human rights",
+      "dismissal": "Wrongful dismissal",
+      "wages": "Unpaid wages and overtime",
+      "safety": "Health and safety",
+      "workers_comp": "Workers' compensation",
+      "contracts": "Employment contracts",
+      "other": "Other employment law"
+    },
+    "languages": {
+      "en": "English",
+      "fr": "French",
+      "es": "Spanish",
+      "pa": "Punjabi",
+      "tl": "Tagalog",
+      "zh": "Chinese",
+      "ar": "Arabic",
+      "hi": "Hindi",
+      "other": "Other"
+    }
+  },
+  "matches": {
+    "title": "Lawyers",
+    "none": "You haven't asked a firm to look at this issue.",
+    "find": "Find a lawyer",
+    "withdraw": "Withdraw",
+    "stopSharing": "Stop sharing",
+    "status": {
+      "pending": "Waiting",
+      "accepted": "Connected",
+      "declined": "Declined",
+      "withdrawn": "Withdrawn",
+      "ended": "Ended"
+    }
+  },
+  "firmRequests": {
+    "title": "Requests from workers",
+    "explain": "You see only the worker's note. Accepting gives your firm read-only access to their issue, which they can end at any time.",
+    "mustBeVerified": "Your firm needs to be verified before you can accept requests.",
+    "empty": "No requests yet.",
+    "received": "Received {{date}}",
+    "noNote": "No note included.",
+    "accept": "Accept and view issue",
+    "decline": "Decline",
+    "openCase": "Open “{{title}}”",
+    "answered_one": "{{count}} answered request",
+    "answered_other": "{{count}} answered requests"
+  },
+  "firmProfile": {
+    "title": "Firm profile",
+    "description_page": "This is what workers see when they browse firms.",
+    "create": "Set up your profile",
+    "edit": "Edit profile",
+    "sections": {
+      "about": "About your firm",
+      "fees": "Fees",
+      "contact": "Contact",
+      "verification": "Verification"
+    },
+    "name": "Firm name",
+    "tagline": "One-line summary",
+    "taglineHint": "For example: Harassment and wrongful dismissal claims",
+    "description": "Description",
+    "descriptionHint": "What you do, who you help and how you work with clients.",
+    "areas": "Areas of law",
+    "languages": "Languages you work in",
+    "city": "City",
+    "provinces": "Provinces",
+    "provincesHint": "Two-letter codes, separated by commas. For example: AB, BC",
+    "years": "Years in practice",
+    "feesHint": "Fill in what applies. Clear fees help workers decide.",
+    "freeConsultation": "We offer a free first consultation",
+    "consultationFee": "Consultation fee ($)",
+    "hourlyMin": "Hourly rate from ($)",
+    "hourlyMax": "Hourly rate to ($)",
+    "flatFrom": "Flat fees from ($)",
+    "contingency": "Contingency (%)",
+    "slidingScale": "We offer a sliding scale based on income",
+    "legalAid": "We accept legal aid",
+    "feeNotes": "Anything else about fees",
+    "website": "Website",
+    "email": "Public email",
+    "phone": "Public phone",
+    "lawSociety": "Law society member number",
+    "lawSocietyHint": "We check this before your firm is listed. It isn't shown to workers. Changing it means we check again.",
+    "accepting": "Accepting new clients",
+    "acceptingHint": "Turn this off to hide your firm from the directory without deleting your profile.",
+    "save": "Save profile",
+    "saving": "Saving…",
+    "saved": "Profile saved.",
+    "fixErrors": "Some fields need attention.",
+    "status": {
+      "missingTitle": "Your firm isn't listed yet",
+      "missingText": "Set up your profile so workers can find you.",
+      "pendingTitle": "Waiting for verification",
+      "pendingText": "We're checking your law society number. Your firm will be listed once it's confirmed.",
+      "hiddenTitle": "Not listed",
+      "hiddenText": "Your firm is verified but hidden, because it isn't accepting new clients or is missing a name or description.",
+      "listedTitle": "Listed in the directory",
+      "listedText": "Workers can find your firm and ask to connect."
+    }
   }
 }

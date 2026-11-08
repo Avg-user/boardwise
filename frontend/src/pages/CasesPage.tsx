@@ -7,7 +7,7 @@ import type { Case } from '../api/types.ts'
 import { useCurrentUser } from '../auth/useCurrentUser.ts'
 import NewCaseDialog from '../components/NewCaseDialog.tsx'
 import CaseTimeline from '../components/case/CaseTimeline.tsx'
-import { MiniVan } from '../components/site/WorkplaceScene.tsx'
+import { Owl } from '../components/brand/Owl.tsx'
 
 type CaseCardProps = {
   item: Case
@@ -27,11 +27,10 @@ function CaseCard({ item, dateFormat, isPreviewed, onPreview }: CaseCardProps) {
       onMouseEnter={() => onPreview(item.id)}
       onFocus={() => onPreview(item.id)}
     >
-      <span className="case-card__text">
-        <span className="case-card__title">{item.title}</span>
-        <span className="case-card__meta">
-          {t('cases.updated', { date: dateFormat.format(new Date(item.updated_at)) })}
-        </span>
+      <span className="case-card__title">{item.title}</span>
+      <span className="case-card__meta">
+        <span className="visually-hidden">{t('cases.updatedLabel')} </span>
+        <time dateTime={item.updated_at}>{dateFormat.format(new Date(item.updated_at))}</time>
       </span>
       <svg
         className="case-card__arrow"
@@ -55,8 +54,13 @@ type CaseListProps = Omit<CaseCardProps, 'item' | 'isPreviewed'> & {
 }
 
 function CaseList({ cases, previewId, ...cardProps }: CaseListProps) {
+  const { t } = useTranslation()
   return (
     <ul className="case-list">
+      <li className="case-list__head" aria-hidden="true">
+        <span>{t('cases.columnIssue')}</span>
+        <span>{t('cases.columnUpdated')}</span>
+      </li>
       {cases.map((item) => (
         <li key={item.id}>
           <CaseCard item={item} isPreviewed={item.id === previewId} {...cardProps} />
@@ -80,6 +84,48 @@ function CaseOverview({ item }: { item: Case }) {
         {t('cases.openIssue')}
       </Link>
     </aside>
+  )
+}
+
+/** Shown beside the list when no issue is being previewed. */
+function HelpPanel() {
+  const { t } = useTranslation()
+  return (
+    <aside className="help-panel" aria-label={t('cases.help.label')}>
+      <section className="help-card">
+        <h2>{t('cases.help.lawyerTitle')}</h2>
+        <p>{t('cases.help.lawyerText')}</p>
+        <Link to="/lawyers">{t('cases.help.lawyerLink')}</Link>
+      </section>
+      <section className="help-card help-card--urgent">
+        <h2>{t('cases.help.urgentTitle')}</h2>
+        <ul className="help-links">
+          <li>
+            {t('cases.help.danger')} <a href="tel:911">{t('cases.help.call911')}</a>
+          </li>
+          <li>
+            {t('cases.help.support')} <a href="tel:988">{t('cases.help.call988')}</a>
+          </li>
+        </ul>
+      </section>
+      <section className="help-card">
+        <h2>{t('cases.help.privacyTitle')}</h2>
+        <p>{t('cases.help.privacyText')}</p>
+      </section>
+    </aside>
+  )
+}
+
+function OwlGreeting({ name }: { name?: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className="owl-greeting">
+      <p className="owl-greeting__bubble">
+        <strong>{name ? t('cases.greeting.hello', { name }) : t('cases.greeting.helloNoName')}</strong>
+        {t('cases.greeting.text')}
+      </p>
+      <Owl className="owl--greeting" followPointer />
+    </div>
   )
 }
 
@@ -107,7 +153,6 @@ function CasesPage() {
   return (
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
-      <p className="eyebrow">{t('cases.eyebrow')}</p>
       <div className="page-header">
         <h1>{title}</h1>
         {canCreate && (
@@ -126,7 +171,7 @@ function CasesPage() {
       )}
       {cases?.length === 0 && (
         <div className="empty-state">
-          <MiniVan />
+          <Owl className="owl--empty" />
           <p className="placeholder-notice">
             {t('cases.empty')}{' '}
             {canCreate && (
@@ -161,7 +206,10 @@ function CasesPage() {
               </section>
             )}
           </div>
-          {previewed && <CaseOverview item={previewed} />}
+          <div className="cases-side">
+            <OwlGreeting name={user?.username} />
+            {previewed ? <CaseOverview item={previewed} /> : <HelpPanel />}
+          </div>
         </div>
       )}
     </>

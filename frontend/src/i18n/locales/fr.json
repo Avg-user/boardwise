@@ -18,8 +18,13 @@
   "nav": {
     "issues": "Mes dossiers",
     "lawyers": "Trouver un avocat",
-    "hr": "Conseil des RH",
-    "firm": "Profil du cabinet"
+    "hr": "Signalements",
+    "firm": "Tableau de bord",
+    "portal": {
+      "hr": "Comité RH",
+      "law_firm": "Cabinet d'avocats"
+    },
+    "firmProfile": "Profil"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -64,9 +69,29 @@
     "emptyCta": "Créer votre premier dossier",
     "openHeading": "Ouverts",
     "closedHeading": "Fermés",
-    "eyebrow": "Vos dossiers",
     "overviewLabel": "Aperçu de la chronologie",
-    "openIssue": "Ouvrir le dossier"
+    "openIssue": "Ouvrir le dossier",
+    "updatedLabel": "Dernière mise à jour",
+    "columnIssue": "Dossier",
+    "columnUpdated": "Dernière mise à jour",
+    "help": {
+      "label": "Aide et ressources",
+      "lawyerTitle": "Parler à un avocat",
+      "lawyerText": "Parcourez les cabinets vérifiés. Un cabinet ne voit un dossier que si vous choisissez de le partager.",
+      "lawyerLink": "Trouver un avocat",
+      "urgentTitle": "Besoin d'aide maintenant?",
+      "privacyTitle": "Vos dossiers sont privés",
+      "privacyText": "Vous seul pouvez les voir, sauf si vous en partagez un avec un cabinet. Vous pouvez arrêter le partage à tout moment.",
+      "danger": "En danger?",
+      "call911": "Composez le 911",
+      "support": "Soutien en tout temps :",
+      "call988": "Appelez ou textez le 988"
+    },
+    "greeting": {
+      "hello": "Bonjour, {{name}}.",
+      "helloNoName": "Bonjour.",
+      "text": " Reprenez là où vous en étiez, ou commencez un nouveau dossier. Je suis là si vous avez besoin de moi."
+    }
   },
   "timeline": {
     "chatSession": "Séance de discussion",
@@ -133,7 +158,8 @@
       "chat": "Discussion",
       "timeline": "Chronologie",
       "steps": "Prochaines étapes"
-    }
+    },
+    "backPartner": "Retour au tableau de bord"
   },
   "chat": {
     "aiLabel": "Assistant IA",
@@ -181,26 +207,209 @@
     "notSent": "Nous n'avons pas envoyé ce message à l'assistant IA. Vous pouvez revenir à cette discussion quand vous serez prêt.",
     "hide": "Masquer ce message"
   },
-  "placeholder": {
-    "notice": "Cet écran est en cours de création."
-  },
-  "pages": {
-    "lawyers": {
-      "title": "Trouver un avocat",
-      "description": "Parcourez les cabinets d'avocats par domaine d'expertise et choisissez qui contacter."
-    },
-    "hr": {
-      "title": "Conseil des RH",
-      "description": "Consultez les signalements anonymes, les tendances générales et les évaluations de descriptions de poste."
-    },
-    "firm": {
-      "title": "Profil du cabinet",
-      "description": "Gérez les domaines d'expertise et les statistiques de dossiers de votre cabinet."
-    }
-  },
   "notFound": {
     "title": "Page introuvable",
     "description": "Cette page n'existe pas ou a peut-être été déplacée.",
     "back": "Aller à Mes dossiers"
+  },
+  "partners": {
+    "prompt": "Comité RH ou cabinet d'avocats?",
+    "link": "Connexion partenaires",
+    "eyebrow": "Pour les comités RH et les cabinets d'avocats",
+    "signIn": "Connexion partenaire",
+    "description": "Connectez-vous au compte de votre organisation ou de votre cabinet.",
+    "notPartner": "Vous êtes un travailleur?",
+    "workerSignIn": "Aller à la connexion principale",
+    "panelTitle": "Ce que les partenaires peuvent voir",
+    "hrTitle": "Comités RH",
+    "hrPoint1": "Des signalements anonymes de personnes de votre organisation.",
+    "hrPoint2": "Des tendances, affichées seulement lorsque assez de personnes ont fait un signalement pour que personne ne puisse être identifié.",
+    "hrPoint3": "Jamais de noms ni de détails permettant d'identifier quelqu'un.",
+    "firmTitle": "Cabinets d'avocats",
+    "firmPoint1": "Les dossiers qu'un travailleur a choisi de partager avec votre cabinet.",
+    "firmPoint2": "Un accès en lecture seule, que le travailleur peut retirer à tout moment.",
+    "firmPoint3": "Un profil que les travailleurs peuvent consulter pour choisir qui contacter.",
+    "control": "Les travailleurs gardent le contrôle. Rien n'est partagé sans leur permission."
+  },
+  "partnerHome": {
+    "upcomingTitle": "Bientôt dans ce tableau de bord",
+    "comingSoon": "Bientôt",
+    "sharedTitle": "Dossiers partagés avec vous",
+    "sharedEmpty": "Aucun travailleur n'a encore partagé de dossier avec votre cabinet.",
+    "sharedMeta": "Mis à jour le {{date}}",
+    "readOnly": "Lecture seule",
+    "hr": {
+      "eyebrow": "Comité RH",
+      "title": "Tableau des signalements",
+      "description": "Des signalements anonymes et des tendances de votre organisation, sans noms.",
+      "reportsTitle": "Signalements anonymes",
+      "reportsText": "Lisez les signalements que des personnes ont choisi d'envoyer à votre comité. Leur identité reste cachée.",
+      "trendsTitle": "Tendances et signaux d'alerte",
+      "trendsText": "Repérez des tendances par équipe ou par type de problème, seulement lorsque les groupes sont assez grands pour préserver l'anonymat.",
+      "jobsTitle": "Révision des descriptions de poste",
+      "jobsText": "Vérifiez les descriptions de poste pour repérer une formulation pouvant mener à un travail dangereux ou injuste."
+    },
+    "firm": {
+      "eyebrow": "Cabinet d'avocats",
+      "title": "Tableau du cabinet",
+      "description": "Les dossiers que des travailleurs ont partagés avec vous, et la façon dont votre cabinet apparaît aux personnes qui cherchent de l'aide.",
+      "statsTitle": "Statistiques des dossiers",
+      "statsText": "Montrez les types de dossiers que votre cabinet traite."
+    }
+  },
+  "lawyers": {
+    "eyebrow": "Cabinets d'avocats vérifiés",
+    "title": "Trouver un avocat",
+    "description": "Parcourez les cabinets qui aident les travailleurs. Ils ne voient votre dossier que si vous demandez à les contacter et qu'ils acceptent.",
+    "filters": {
+      "search": "Rechercher par nom ou ville",
+      "area": "Domaine de droit",
+      "language": "Langue",
+      "any": "Tous",
+      "free": "Première consultation gratuite"
+    },
+    "empty": "Aucun cabinet ne correspond à ces filtres.",
+    "verified": "Vérifié",
+    "verifiedFirm": "Cabinet d'avocats vérifié",
+    "back": "Retour à tous les cabinets",
+    "about": "À propos",
+    "feesTitle": "Honoraires",
+    "details": "Détails",
+    "city": "Ville",
+    "provinces": "Provinces",
+    "languagesLabel": "Langues",
+    "experience": "Expérience",
+    "years_one": "{{count}} an",
+    "years_other": "{{count}} ans",
+    "website": "Site Web",
+    "fees": {
+      "freeConsultation": "Première consultation gratuite",
+      "consultation": "Première consultation : {{amount}}",
+      "hourlyRange": "{{min}} à {{max}} de l'heure",
+      "hourly": "{{amount}} de l'heure",
+      "flatFrom": "Forfaits à partir de {{amount}}",
+      "contingency": "Honoraires conditionnels : {{percent}} % du montant obtenu",
+      "slidingScale": "Tarif selon le revenu",
+      "legalAid": "Accepte l'aide juridique",
+      "ask": "Renseignez-vous auprès du cabinet sur ses honoraires."
+    },
+    "connect": {
+      "title": "Demander à entrer en contact",
+      "intro": "Envoyez une courte note à ce cabinet. Il ne voit que votre note jusqu'à ce qu'il accepte.",
+      "case": "De quel problème s'agit-il?",
+      "note": "Votre note (facultatif)",
+      "noteHint": "Décrivez la situation en termes généraux. Vous n'avez pas besoin d'inclure de noms.",
+      "consent": "Si le cabinet accepte, il pourra lire ce dossier : sa chronologie, ses prochaines étapes et la discussion. Vous pouvez arrêter le partage à tout moment depuis la page du dossier.",
+      "send": "Envoyer la demande",
+      "sending": "Envoi…",
+      "sent": "Demande envoyée. La réponse du cabinet apparaîtra sur la page de votre dossier.",
+      "noCases": "Créez d'abord un dossier, puis vous pourrez demander à un cabinet de l'examiner.",
+      "status": {
+        "pending": "Vous avez déjà contacté ce cabinet pour ce dossier. En attente de sa réponse.",
+        "accepted": "Ce cabinet a accepté votre demande et peut lire ce dossier."
+      }
+    },
+    "areas": {
+      "harassment": "Harcèlement au travail",
+      "discrimination": "Discrimination et droits de la personne",
+      "dismissal": "Congédiement injustifié",
+      "wages": "Salaire et heures supplémentaires impayés",
+      "safety": "Santé et sécurité",
+      "workers_comp": "Indemnisation des travailleurs",
+      "contracts": "Contrats d'emploi",
+      "other": "Autre droit de l'emploi"
+    },
+    "languages": {
+      "en": "Anglais",
+      "fr": "Français",
+      "es": "Espagnol",
+      "pa": "Pendjabi",
+      "tl": "Tagalog",
+      "zh": "Chinois",
+      "ar": "Arabe",
+      "hi": "Hindi",
+      "other": "Autre"
+    }
+  },
+  "matches": {
+    "title": "Avocats",
+    "none": "Vous n'avez demandé à aucun cabinet d'examiner ce dossier.",
+    "find": "Trouver un avocat",
+    "withdraw": "Retirer",
+    "stopSharing": "Arrêter le partage",
+    "status": {
+      "pending": "En attente",
+      "accepted": "En contact",
+      "declined": "Refusée",
+      "withdrawn": "Retirée",
+      "ended": "Terminée"
+    }
+  },
+  "firmRequests": {
+    "title": "Demandes des travailleurs",
+    "explain": "Vous ne voyez que la note du travailleur. Accepter donne à votre cabinet un accès en lecture seule à son dossier, auquel il peut mettre fin à tout moment.",
+    "mustBeVerified": "Votre cabinet doit être vérifié avant de pouvoir accepter des demandes.",
+    "empty": "Aucune demande pour le moment.",
+    "received": "Reçue le {{date}}",
+    "noNote": "Aucune note.",
+    "accept": "Accepter et voir le dossier",
+    "decline": "Refuser",
+    "openCase": "Ouvrir « {{title}} »",
+    "answered_one": "{{count}} demande traitée",
+    "answered_other": "{{count}} demandes traitées"
+  },
+  "firmProfile": {
+    "title": "Profil du cabinet",
+    "description_page": "Voici ce que voient les travailleurs lorsqu'ils parcourent les cabinets.",
+    "create": "Créer votre profil",
+    "edit": "Modifier le profil",
+    "sections": {
+      "about": "À propos de votre cabinet",
+      "fees": "Honoraires",
+      "contact": "Coordonnées",
+      "verification": "Vérification"
+    },
+    "name": "Nom du cabinet",
+    "tagline": "Résumé en une ligne",
+    "taglineHint": "Par exemple : Harcèlement et congédiement injustifié",
+    "description": "Description",
+    "descriptionHint": "Ce que vous faites, qui vous aidez et comment vous travaillez avec vos clients.",
+    "areas": "Domaines de droit",
+    "languages": "Langues de travail",
+    "city": "Ville",
+    "provinces": "Provinces",
+    "provincesHint": "Codes à deux lettres, séparés par des virgules. Par exemple : AB, BC",
+    "years": "Années d'expérience",
+    "feesHint": "Remplissez ce qui s'applique. Des honoraires clairs aident les travailleurs à décider.",
+    "freeConsultation": "Nous offrons une première consultation gratuite",
+    "consultationFee": "Frais de consultation ($)",
+    "hourlyMin": "Tarif horaire à partir de ($)",
+    "hourlyMax": "Tarif horaire jusqu'à ($)",
+    "flatFrom": "Forfaits à partir de ($)",
+    "contingency": "Honoraires conditionnels (%)",
+    "slidingScale": "Nous offrons un tarif selon le revenu",
+    "legalAid": "Nous acceptons l'aide juridique",
+    "feeNotes": "Autres précisions sur les honoraires",
+    "website": "Site Web",
+    "email": "Courriel public",
+    "phone": "Téléphone public",
+    "lawSociety": "Numéro de membre du barreau",
+    "lawSocietyHint": "Nous le vérifions avant d'afficher votre cabinet. Il n'est pas montré aux travailleurs. Si vous le modifiez, nous le vérifierons de nouveau.",
+    "accepting": "Nous acceptons de nouveaux clients",
+    "acceptingHint": "Désactivez cette option pour retirer votre cabinet du répertoire sans supprimer votre profil.",
+    "save": "Enregistrer le profil",
+    "saving": "Enregistrement…",
+    "saved": "Profil enregistré.",
+    "fixErrors": "Certains champs sont à corriger.",
+    "status": {
+      "missingTitle": "Votre cabinet n'est pas encore affiché",
+      "missingText": "Créez votre profil pour que les travailleurs puissent vous trouver.",
+      "pendingTitle": "En attente de vérification",
+      "pendingText": "Nous vérifions votre numéro de membre du barreau. Votre cabinet sera affiché une fois la vérification terminée.",
+      "hiddenTitle": "Non affiché",
+      "hiddenText": "Votre cabinet est vérifié mais masqué, car il n'accepte pas de nouveaux clients ou il manque un nom ou une description.",
+      "listedTitle": "Affiché dans le répertoire",
+      "listedText": "Les travailleurs peuvent trouver votre cabinet et demander à entrer en contact."
+    }
   }
 }

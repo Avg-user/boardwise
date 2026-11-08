@@ -1,50 +1,29 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { login } from '../api/auth.ts'
-import { ApiError } from '../api/client.ts'
+import { Link, Navigate } from 'react-router-dom'
 import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import { useSignIn } from '../auth/useSignIn.ts'
+import { Owl } from '../components/brand/Owl.tsx'
 import WorkplaceScene from '../components/site/WorkplaceScene.tsx'
-import { CURRENT_USER_KEY, queryClient } from '../queryClient.ts'
 
 function LoginPage() {
   const { t } = useTranslation()
   const { user } = useCurrentUser()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { username, setUsername, password, setPassword, error, isSubmitting, handleSubmit } =
+    useSignIn()
+  // The owl covers its eyes while the password field has focus.
+  const [typingPassword, setTypingPassword] = useState(false)
 
   if (user && !isSubmitting) {
     return <Navigate to={getRoleHome(user.role)} replace />
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
-    try {
-      const signedIn = await login(username.trim(), password)
-      queryClient.setQueryData(CURRENT_USER_KEY, signedIn)
-      const from: unknown = location.state?.from
-      navigate(typeof from === 'string' ? from : getRoleHome(signedIn.role), { replace: true })
-    } catch (caught) {
-      setError(
-        caught instanceof ApiError && caught.status === 400
-          ? t('auth.invalidCredentials')
-          : t('common.serverError'),
-      )
-      setIsSubmitting(false)
-    }
   }
 
   const title = t('auth.signIn')
 
   return (
     <div className="auth-split">
-      <div className="auth-page">
+      <div className="auth-page auth-page--perch">
+        <Owl className="owl--perch" wave followPointer coverEyes={typingPassword} />
         <title>{`${title} · ${t('app.name')}`}</title>
         <p className="eyebrow">{t('auth.eyebrow')}</p>
         <h1>{title}</h1>
@@ -70,6 +49,8 @@ function LoginPage() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              onFocus={() => setTypingPassword(true)}
+              onBlur={() => setTypingPassword(false)}
             />
           </div>
           {error && (
@@ -83,6 +64,9 @@ function LoginPage() {
         </form>
         <p className="auth-switch">
           {t('auth.noAccount')} <Link to="/signup">{t('auth.createAccount')}</Link>
+        </p>
+        <p className="partner-link">
+          {t('partners.prompt')} <Link to="/partners/login">{t('partners.link')}</Link>
         </p>
       </div>
       <div className="scene-panel">

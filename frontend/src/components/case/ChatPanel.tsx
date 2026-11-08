@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { closeSession } from '../../api/closedSessions.ts'
 import type { ChatMessage } from '../../api/types.ts'
+import { OwlMark } from '../brand/Owl.tsx'
 import ConfirmDialog from '../ConfirmDialog.tsx'
 import { sendChatMessage, usePendingSend, type PendingSend } from './chatSending.ts'
 import CrisisBanner from './CrisisBanner.tsx'
+import Markdown from './Markdown.tsx'
 import { NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
 
 type ChatPanelProps = {
@@ -17,7 +19,12 @@ type ChatPanelProps = {
 
 function AssistantLabel() {
   const { t } = useTranslation()
-  return <span className="ai-label">{t('chat.aiLabel')}</span>
+  return (
+    <span className="ai-label">
+      <OwlMark className="owl-mark--tiny" />
+      {t('chat.aiLabel')}
+    </span>
+  )
 }
 
 function Message({ message }: { message: ChatMessage }) {
@@ -29,7 +36,7 @@ function Message({ message }: { message: ChatMessage }) {
   return (
     <div className="message message--assistant">
       <AssistantLabel />
-      <p>{message.content}</p>
+      <Markdown text={message.content} />
       {message.citations.length > 0 && (
         <div className="citations">
           <span className="citations__label">{t('chat.sources')}</span>

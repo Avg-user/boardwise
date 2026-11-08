@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { getCase } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
+import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import CaseHeader from '../components/case/CaseHeader.tsx'
 import ChatPanel from '../components/case/ChatPanel.tsx'
+import MatchesPanel from '../components/case/MatchesPanel.tsx'
 import NextStepsPanel from '../components/case/NextStepsPanel.tsx'
 import TimelinePanel from '../components/case/TimelinePanel.tsx'
 import NotFoundPage from './NotFoundPage.tsx'
@@ -20,6 +22,7 @@ type TabId = (typeof TABS)[number]['id']
 
 function CasePage() {
   const { t } = useTranslation()
+  const { user } = useCurrentUser()
   const { caseId: caseIdParam } = useParams()
   const caseId = Number(caseIdParam)
   const isValidId = Number.isInteger(caseId) && caseId > 0
@@ -53,8 +56,8 @@ function CasePage() {
   return (
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
-      <Link className="back-link" to="/">
-        {t('case.back')}
+      <Link className="back-link" to={user ? getRoleHome(user.role) : '/'}>
+        {canEdit ? t('case.back') : t('case.backPartner')}
       </Link>
       <CaseHeader caseItem={caseQuery.data} />
 
@@ -86,6 +89,12 @@ function CasePage() {
           <section className="case-pane" data-active={activeTab === 'steps'}>
             <NextStepsPanel caseId={caseId} canEdit={canEdit} />
           </section>
+          {/* Only the owner sees who they've contacted; firms never see each other. */}
+          {canEdit && (
+            <section className="case-pane" data-active={activeTab === 'steps'}>
+              <MatchesPanel caseId={caseId} />
+            </section>
+          )}
         </div>
       </div>
     </>
