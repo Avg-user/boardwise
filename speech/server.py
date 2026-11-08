@@ -3,6 +3,8 @@
 Idle until someone dictates: the model loads on the first session and unloads after
 SPEECH_IDLE_UNLOAD_S seconds without one, so an idle container uses no CPU and little memory.
 
+GET /warm loads the model ahead of a session (the chat calls it when it opens).
+
 Protocol (one WebSocket per dictation):
   connect   /ws?ticket=<one-time ticket from Django's /api/cases/<id>/dictation-ticket/>
   server -> {"type": "ready"}                      start sending audio
@@ -45,7 +47,7 @@ class Config:
     threads: int = 0
     max_sessions: int = 2
     max_seconds: float = 180.0
-    idle_unload_s: float = 300.0
+    idle_unload_s: float = 120.0
     host: str = "0.0.0.0"
     port: int = 9100
 
@@ -58,7 +60,7 @@ class Config:
             threads=int(env("SPEECH_THREADS", "0")),
             max_sessions=int(env("SPEECH_MAX_SESSIONS", "2")),
             max_seconds=float(env("DICTATION_MAX_SECONDS", "180")),
-            idle_unload_s=float(env("SPEECH_IDLE_UNLOAD_S", "300")),
+            idle_unload_s=float(env("SPEECH_IDLE_UNLOAD_S", "120")),
             host=env("SPEECH_HOST", "0.0.0.0"),
             port=int(env("SPEECH_PORT", "9100")),
         )
@@ -111,10 +113,15 @@ class SpeechServer:
         self.tickets = TicketVerifier(config.secret, clock=clock)
         self.models = ModelPool(config.model, config.threads, config.idle_unload_s, loader)
         self._ids = itertools.count(1)
+        self._warming = None  # keeps the warm-up task from being garbage-collected
 
     def process_request(self, connection, request):
         path = urlparse(request.path).path
         if path == "/health":
+            return connection.respond(HTTPStatus.OK, "ok\n")
+        if path == "/warm":
+            self.models.touch()  # restart the idle timer
+            self._warming = asyncio.get_running_loop().create_task(self.models.get())
             return connection.respond(HTTPStatus.OK, "ok\n")
         if path != "/ws":
             return connection.respond(HTTPStatus.NOT_FOUND, "Not found\n")
@@ -138,6 +145,8 @@ class SpeechServer:
         started = time.monotonic()
         audio_s = 0.0
         try:
+            # Ready before loading: the client starts sending, and frames queue while the model loads.
+            await ws.send(json.dumps({"type": "ready"}))
             model = await self.models.get()
             stt = StreamingTranscriber(model, language=claims.language)
             audio_s = await self._run(ws, stt, session)
@@ -189,7 +198,6 @@ class SpeechServer:
         receiver = asyncio.create_task(receive())
         slowest = 0.0
         try:
-            await ws.send(json.dumps({"type": "ready"}))
             while True:
                 await wake.wait()
                 wake.clear()

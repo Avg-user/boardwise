@@ -82,6 +82,9 @@ export function useDictation({ caseId, language, onFinal, onStop }: UseDictation
               setError(code)
             }
           },
+          onListening: () => {
+            if (!controller.signal.aborted) setStatus('listening') // mic is on: speak now
+          },
         },
         controller.signal,
       )

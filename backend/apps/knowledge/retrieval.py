@@ -1,10 +1,13 @@
 """Hybrid retrieval over LawChunk: full-text + vector search, merged with reciprocal rank fusion,
 then expanded one hop along cross-reference edges (the "graph" part)."""
 import logging
+import math
+import operator
+from functools import reduce
 
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F
+from django.db.models import F, Value
 from pgvector.django import CosineDistance
 
 from apps.chat import llm
@@ -17,17 +20,24 @@ CANDIDATES = 20
 
 
 def _fulltext(province: str, query: str) -> list[int]:
-    q = SearchQuery(query, search_type="websearch", config=settings.RAG_SEARCH_CONFIG)
-    # websearch requires every term (AND); for natural questions an OR of terms recalls far better.
-    terms = [t for t in query.split() if t.isalnum() and len(t) > 2]
-    if terms:
-        q = q | SearchQuery(" ".join(terms), search_type="websearch", config=settings.RAG_SEARCH_CONFIG)
-        for t in terms:
-            q = q | SearchQuery(t, config=settings.RAG_SEARCH_CONFIG)
+    """Rank by matched terms, each weighted by how rare it is in this province's documents (IDF).
+
+    Plain ts_rank treats every term alike, so in a question like "Occupational Health & Safety
+    rules on noise" the common words ("health", "safety") outweigh the one that matters ("noise").
+    """
+    chunks = LawChunk.objects.filter(province=province)
+    total = chunks.count()
+    weighted = [(SearchQuery(query, search_type="websearch", config=settings.RAG_SEARCH_CONFIG), 1.0)]
+    for term in dict.fromkeys(t.lower() for t in query.split() if t.isalnum() and len(t) > 2):
+        q = SearchQuery(term, config=settings.RAG_SEARCH_CONFIG)
+        df = chunks.filter(search_vector=q).count()  # stop words match nothing and drop out here
+        if df:
+            weighted.append((q, math.log(1 + total / df)))
+    any_term = reduce(operator.or_, (q for q, _ in weighted))
+    rank = sum((SearchRank(F("search_vector"), q) * Value(w) for q, w in weighted), Value(0.0))
     return list(
-        LawChunk.objects.filter(province=province, search_vector=q)
-        .annotate(rank=SearchRank(F("search_vector"), q))
-        .order_by("-rank").values_list("pk", flat=True)[:CANDIDATES]
+        chunks.filter(search_vector=any_term).annotate(rank=rank)
+        .order_by("-rank", "pk").values_list("pk", flat=True)[:CANDIDATES]
     )
 
 
@@ -67,6 +77,6 @@ def search(province: str, query: str, k: int | None = None) -> list[LawChunk]:
 def format_chunks(chunks: list[LawChunk]) -> str:
     blocks = []
     for c in chunks:
-        label = f"s. {c.section_ref} — {c.heading}" if c.section_ref else c.heading
+        label = f"s. {c.section_ref} — {c.heading}" if c.section_ref[:1].isdigit() else c.heading
         blocks.append(f"### [{c.source.title}] {label}\n{c.text}")
     return "\n\n".join(blocks)

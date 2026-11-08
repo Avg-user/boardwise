@@ -19,16 +19,30 @@ class Chunk:
     text: str
 
 
+_SCHEDULE = re.compile(r"^schedule\s+(\d+)\b", re.IGNORECASE)
+
+
 def section_ref_from_heading(heading: str) -> str:
-    m = _SECTION.match(heading.strip())
+    heading = heading.strip()
+    if m := _SCHEDULE.match(heading):
+        return f"Schedule {m.group(1)}"
+    m = _SECTION.match(heading)
     return m.group(1) if m else ""
+
+
+def _pieces(text: str) -> list[str]:
+    """Paragraphs; a paragraph longer than MAX_CHARS (a long list or table) is split into its lines."""
+    out = []
+    for para in re.split(r"\n\s*\n", text):
+        out += para.splitlines() if len(para) > MAX_CHARS else [para]
+    return out
 
 
 def _split_long(text: str) -> list[str]:
     if len(text) <= MAX_CHARS:
         return [text]
     parts, current = [], ""
-    for para in re.split(r"\n\s*\n", text):
+    for para in _pieces(text):
         if current and len(current) + len(para) + 2 > MAX_CHARS:
             parts.append(current)
             current = para

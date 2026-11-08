@@ -144,13 +144,15 @@ All endpoints require authentication.
   - Replies are Markdown; the frontend renders them with `react-markdown` + `remark-gfm` (`components/case/Markdown.tsx`, no raw HTML).
 
 ### Law reference RAG (`apps/knowledge`)
-- Source docs: `backend/prompts/provinces/<CODE>.md` and `<CODE>/*.md` (Markdown). Only `AB.md` exists so far.
-- `manage.py ingest_laws [--province AB] [--no-embed] [--async-embed]`. It is idempotent (skips unchanged content via `content_hash`).
-  - Splits by headings, one chunk per section (`chunker.py`); long sections split on paragraphs.
-  - Parses cross-references with regex into `LawReference` edges (`references.py`). No LLM is used to build the graph.
+- Source docs: `backend/prompts/provinces/<CODE>.md` (summary) and `<CODE>/*.md` / `<CODE>/*.pdf`. AB has the summary plus the King's Printer consolidations of the Employment Standards Code and the OHS Code (`AB/*.pdf`).
+  - PDFs are converted by `pdf.py` (pypdf): it drops the table of contents, page headers and amendment-history lines, and emits `## Part` / `### Division` / `#### <section> <heading>` / `## Schedule N` Markdown. It only understands King's Printer consolidations and skips other PDFs with a warning.
+- `manage.py ingest_laws [--province AB] [--no-embed] [--async-embed]`. It is idempotent (skips unchanged content via `content_hash`). Bump `INGEST_VERSION` in `ingest.py` when chunking or graph building changes, so everything is re-ingested.
+  - Splits by headings, one chunk per section (`chunker.py`); long sections split on paragraphs, and very long paragraphs (lists, tables) on lines.
+  - Parses cross-references ("section 23", "Schedule 3") with regex into `LawReference` edges (`references.py`), within the same document only. Schedules also link back to the sections in their "[See sections …]" note. No LLM is used to build the graph.
   - Embeds via `llm.embed()` (same `data_collection` policy). If embedding fails, chunks are still saved.
 - Retrieval (`retrieval.py`):
   - Hybrid search filtered by province: Postgres full-text + pgvector cosine, merged with reciprocal rank fusion. Returns the top `RAG_TOP_K`.
+  - Full-text weights each query term by its rarity in the province (IDF), so "noise" beats "health"/"safety" in an OHS question.
   - Then expands one hop along reference edges.
   - Falls back to full-text only when there are no embeddings or embedding fails.
 - If a province has no ingested chunks, the whole `<CODE>.md` file is used instead.
@@ -164,10 +166,10 @@ All endpoints require authentication.
   1. The browser asks for the mic first (the permission prompt can outlast a ticket).
   2. `POST /api/cases/<case_pk>/dictation-ticket/ {language}` returns `{ticket, url, expires_in}`. Owner only (`CaseScopedMixin`: strangers 404, grantees 403); 503 when `SPEECH_TICKET_SECRET` is empty, and the UI then hides the button.
   3. The browser opens `url?ticket=…` (`/speech/ws`; Vite proxies `/speech` to `127.0.0.1:9100`). The ticket is HMAC-signed with `SPEECH_TICKET_SECRET`, lasts 60 s, works once, and carries IDs only. `apps/speech/tickets.py` and `speech/tickets.py` implement the same format; keep them in sync.
-  4. Audio: `frontend/public/pcm-worklet.js` resamples to 16 kHz mono 16-bit PCM in ~100 ms frames. It resamples itself because Firefox can't connect a mic to an `AudioContext` at another rate.
+  4. Audio: `frontend/public/pcm-worklet.js` resamples to 16 kHz mono 16-bit PCM in ~100 ms frames. It resamples itself because Firefox can't connect a mic to an `AudioContext` at another rate. Capture starts as soon as the mic opens; frames are held until the server is ready, so nothing said after "Listening" is lost.
   5. Protocol (documented in `speech/server.py`): `ready`, then `partial`/`final` text, `done` (`stopped`|`limit`) or `error` (`unauthorized`|`busy`|`failed`); the client sends `{type:"stop"}` to finish.
 - `speech/streaming.py` re-transcribes the unfinished audio about once a second. Every segment but the last is final; the last becomes final when two passes in a row agree or the buffer reaches 8 s.
-- Resource use: idle, the container uses ~0% CPU and ~40 MB. The model loads on the first session (`base` ≈ 0.7 s) and unloads after `SPEECH_IDLE_UNLOAD_S` (300) without sessions. Compose caps it at `SPEECH_CPUS` (4); `SPEECH_THREADS` (4) must match. `SPEECH_MAX_SESSIONS` (2) bounds concurrency; extra sessions get `busy`.
+- Resource use: idle, the container uses ~0% CPU and ~40 MB. The model loads when a chat opens (`GET /speech/warm`) or on the first session, and unloads after `SPEECH_IDLE_UNLOAD_S` (120) without sessions or warm-ups. Compose caps it at `SPEECH_CPUS` (4); `SPEECH_THREADS` (4) must match. `SPEECH_MAX_SESSIONS` (2) bounds concurrency; extra sessions get `busy`.
 - Privacy: audio and text are never stored, and transcript text is never logged (session, user and case IDs only). The model runs in the container; no audio leaves the machine. On a model load, faster-whisper only checks Hugging Face for model metadata.
 - `faster-whisper==1.2.1` needs `av==16.1.0`: av 17+ removed an argument it uses.
 - Env: `SPEECH_TICKET_SECRET` (Django and the container, from the root `.env`), `SPEECH_MODEL` (`base`; `tiny` is faster, `small` is too slow for live on CPU), `SPEECH_MAX_SESSIONS`, `SPEECH_IDLE_UNLOAD_S`, `DICTATION_MAX_SECONDS` (180), `SPEECH_CPUS`, `SPEECH_THREADS`, `SPEECH_TICKET_TTL` (60), `SPEECH_WS_URL` (`/speech/ws`). In production, route `/speech/` to the speech service with WebSocket upgrades and keep port 9100 private.
@@ -183,7 +185,7 @@ All endpoints require authentication.
 - Firm case statistics, and notifying firms and workers about new requests and answers.
 - HR: anonymous reports and a dashboard that applies a minimum group size.
 - Encrypted file storage.
-- RAG follow-ups: PDF/HTML ingestion for full statutes, a per-province eval set (question → expected section), an HNSW index once the corpus grows, and a French search config for QC.
+- RAG follow-ups: HTML ingestion, PDFs other than King's Printer consolidations, a per-province eval set (question → expected section), an HNSW index once the corpus grows, and a French search config for QC.
 
 ## Rules
 
