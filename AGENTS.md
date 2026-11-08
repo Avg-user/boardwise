@@ -17,7 +17,7 @@ The data is highly sensitive. Treat privacy as a hard requirement, not a feature
 - **Backend**: Django 6 + Django REST Framework, Channels (WebSocket streaming), Celery + Redis (background jobs), PostgreSQL.
 - **Frontend**: React + Vite + TypeScript, TanStack Query, React Router, i18next.
 - **AI**: OpenRouter through the `openai` SDK. All LLM calls go through `backend/apps/chat/llm.py`.
-- **Local services**: `docker-compose.yml` runs Postgres 17 with pgvector (`pgvector/pgvector:pg17-trixie`) and Redis 7.
+- **Local services**: `docker-compose.yml` runs Postgres 17 with pgvector (`pgvector/pgvector:pg17-trixie`), Redis 7, and `speech` (voice dictation with faster-whisper, built from `speech/`).
 
 ## Layout
 
@@ -34,13 +34,17 @@ backend/
     lawfirms/        firm profiles, matchmaking
     hr/              anonymous reports, dashboard aggregates
     knowledge/       province law references for RAG: chunks, embeddings, cross-reference graph
-frontend/            React app; /api is proxied to Django on :8000
+    speech/          dictation tickets for the speech service (no models)
+speech/              speech service (docker): WebSocket dictation with faster-whisper; streaming.py, server.py, tickets.py
+frontend/            React app; /api is proxied to Django on :8000, /speech to the speech service on :9100
 ```
 
 ## Commands
 
 ```bash
-docker compose up -d                                   # Postgres + Redis (Docker Desktop must be running)
+docker compose up -d                                   # Postgres + Redis + speech (Docker Desktop must be running)
+docker compose up -d --build speech                    # after changing speech/
+docker compose run --rm --no-deps speech python -m unittest tests   # speech service tests
 
 cd backend
 .venv/bin/python manage.py runserver                   # API on :8000
@@ -153,8 +157,23 @@ All endpoints require authentication.
 - `llm.py` sends `provider.data_collection = settings.OPENROUTER_DATA_COLLECTION` (default `deny`). `.env.example` sets `allow` **for dev only** so the free model works. **Switch back to `deny` before real user data.**
 - Chat env vars: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_DATA_COLLECTION` (`deny`|`allow`), `OPENROUTER_MAX_RETRIES` (default 4; the SDK retries 429/5xx), `CHAT_DEFAULT_PROVINCE` (default `AB`), `CHAT_HISTORY_LIMIT` (default 40; crisis-flagged messages are never sent to the model), `EMBEDDING_MODEL` (default `openai/text-embedding-3-small`; empty = full-text only), `RAG_TOP_K` (6), `RAG_SEARCH_CONFIG` (`english`).
 
+### Voice dictation (`speech/` service + `apps/speech`)
+- The chat box has a **Speak** button. While listening, the box is read-only: finished words show solid and the words still being recognised show grey. On **Stop** it becomes editable at once: the grey words go in, then the final text replaces them unless edited. **Send** while listening stops, waits up to 1 s, then sends.
+- Dictated text is only a draft. It goes through the normal send path (crisis check, scope guard), so nothing reaches the LLM until the person presses Send.
+- Flow:
+  1. The browser asks for the mic first (the permission prompt can outlast a ticket).
+  2. `POST /api/cases/<case_pk>/dictation-ticket/ {language}` returns `{ticket, url, expires_in}`. Owner only (`CaseScopedMixin`: strangers 404, grantees 403); 503 when `SPEECH_TICKET_SECRET` is empty, and the UI then hides the button.
+  3. The browser opens `url?ticket=…` (`/speech/ws`; Vite proxies `/speech` to `127.0.0.1:9100`). The ticket is HMAC-signed with `SPEECH_TICKET_SECRET`, lasts 60 s, works once, and carries IDs only. `apps/speech/tickets.py` and `speech/tickets.py` implement the same format; keep them in sync.
+  4. Audio: `frontend/public/pcm-worklet.js` resamples to 16 kHz mono 16-bit PCM in ~100 ms frames. It resamples itself because Firefox can't connect a mic to an `AudioContext` at another rate.
+  5. Protocol (documented in `speech/server.py`): `ready`, then `partial`/`final` text, `done` (`stopped`|`limit`) or `error` (`unauthorized`|`busy`|`failed`); the client sends `{type:"stop"}` to finish.
+- `speech/streaming.py` re-transcribes the unfinished audio about once a second. Every segment but the last is final; the last becomes final when two passes in a row agree or the buffer reaches 8 s.
+- Resource use: idle, the container uses ~0% CPU and ~40 MB. The model loads on the first session (`base` ≈ 0.7 s) and unloads after `SPEECH_IDLE_UNLOAD_S` (300) without sessions. Compose caps it at `SPEECH_CPUS` (4); `SPEECH_THREADS` (4) must match. `SPEECH_MAX_SESSIONS` (2) bounds concurrency; extra sessions get `busy`.
+- Privacy: audio and text are never stored, and transcript text is never logged (session, user and case IDs only). The model runs in the container; no audio leaves the machine. On a model load, faster-whisper only checks Hugging Face for model metadata.
+- `faster-whisper==1.2.1` needs `av==16.1.0`: av 17+ removed an argument it uses.
+- Env: `SPEECH_TICKET_SECRET` (Django and the container, from the root `.env`), `SPEECH_MODEL` (`base`; `tiny` is faster, `small` is too slow for live on CPU), `SPEECH_MAX_SESSIONS`, `SPEECH_IDLE_UNLOAD_S`, `DICTATION_MAX_SECONDS` (180), `SPEECH_CPUS`, `SPEECH_THREADS`, `SPEECH_TICKET_TTL` (60), `SPEECH_WS_URL` (`/speech/ws`). In production, route `/speech/` to the speech service with WebSocket upgrades and keep port 9100 private.
+
 ### Tests
-`apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback), `apps/lawfirms/tests.py` (registration, profiles, directory, match flow and privacy). Chat tests mock `llm.chat`; tests must never call the real model.
+`apps/speech/tests.py` (ticket access rules and format), `speech/tests.py` (tickets, streaming, server protocol and limits, with a fake model; run in the container), `apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback), `apps/lawfirms/tests.py` (registration, profiles, directory, match flow and privacy). Chat tests mock `llm.chat`; tests must never call the real model.
 
 ### Not built yet
 - WebSocket streaming for chat. The frontend (`frontend/src/api/chat.ts`) calls the synchronous endpoint and passes the whole reply to `onDelta` once. Proposed message format:
@@ -176,6 +195,7 @@ All endpoints require authentication.
 
 ### AI
 - Call LLMs only through `apps/chat/llm.py`. Do not call OpenRouter or model providers from anywhere else, and never from the frontend.
+- Speech-to-text runs locally in the `speech` container (faster-whisper), not through `llm.py`. Never send audio to a third-party service, and never store or log audio or transcripts.
 - Keep `provider.data_collection = "deny"` on every request outside local dev (controlled by `OPENROUTER_DATA_COLLECTION`).
 - The assistant answers only workplace-related questions; keep both scope layers (prompt rules + `scope.py` check) when changing prompts or models.
 - The assistant must be clearly identified as AI to users. It must not present itself as a human, and must not give legal advice; it organizes information and points people to professionals.

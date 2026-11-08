@@ -8,6 +8,7 @@ from apps.cases.views import CaseShareViewSet, CaseViewSet, TimelineEntryViewSet
 from apps.chat.views import ConversationViewSet
 from apps.documents.views import DocumentViewSet
 from apps.lawfirms.views import CaseMatchViewSet, FirmRequestViewSet, LawFirmViewSet, my_profile
+from apps.speech.views import DictationTicketView
 from apps.tasks.views import TaskViewSet
 
 
@@ -40,6 +41,7 @@ urlpatterns = [
     path("api/lawfirms/me/", my_profile),
     path("api/lawfirms/me/", include(firm_router.urls)),
     path("api/", include(router.urls)),
+    path("api/cases/<int:case_pk>/dictation-ticket/", DictationTicketView.as_view(), name="case-dictation-ticket"),
     path("api/cases/<int:case_pk>/", include(case_router.urls)),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

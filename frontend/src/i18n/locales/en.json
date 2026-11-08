@@ -145,7 +145,19 @@
     "notice": "AI can make mistakes. This is general information, not legal advice, so check the sources or talk to a professional.",
     "sendFailed": "Your message didn't send. It's back in the box so you can try again.",
     "earlierSession": "You're viewing an earlier chat from {{date}}.",
-    "latestSession": "Go to the latest chat"
+    "latestSession": "Go to the latest chat",
+    "dictation": {
+      "start": "Speak",
+      "stop": "Stop",
+      "connecting": "Starting the microphone…",
+      "listening": "Listening. Start speaking.",
+      "micDenied": "We couldn't use your microphone. Check that your browser allows this site to use it.",
+      "busy": "Voice typing is busy right now. Try again in a minute, or type your message.",
+      "unavailable": "Voice typing isn't available. You can type your message instead.",
+      "offline": "Voice typing can't connect right now. Try again later, or type your message.",
+      "tooLong": "Voice typing stops after 3 minutes. What you said so far is in the box.",
+      "failed": "Voice typing stopped unexpectedly. What you said so far is in the box."
+    }
   },
   "crisis": {
     "title": "Are you in immediate danger?",
