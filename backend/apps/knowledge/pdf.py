@@ -24,6 +24,45 @@ _SUBSECTION = re.compile(r"^\(\d+\)\s")
 _HISTORY = re.compile(r"^(?:R?SA \d{4} c\S+|AR \d+/\d{4}|\d{4} c[\w.-]+ s\d)")
 
 
+# A row of the OHS Code's occupational exposure limit table (Schedule 1, Table 2), e.g.
+# "Acetaldehyde 75-07-0 - - - (c) 25 (c) 45 3". The name may be on the lines above instead.
+_OEL_ROW = re.compile(r"^(?P<name>.*?)\s*\b(?P<cas>\d{2,7}-\d{2}-\d)\s+(?P<vals>.+?)\s*$")
+_OEL_VALUE = r"(?:\(c\)\s*[\d.]+|-|[\d.]+|A\d)"
+_OEL_VALUES = re.compile(rf"{_OEL_VALUE}(?:\s+{_OEL_VALUE})*")
+
+
+def _amount(ppm: str, mg: str, fcc: str = "-") -> str:
+    parts = [f"{ppm} ppm" if ppm != "-" else "", f"{mg} mg/m³" if mg != "-" else "",
+             f"{fcc} fibres/cc" if fcc != "-" else ""]
+    return ", ".join(p for p in parts if p)
+
+
+def _oel_row(line: str) -> str:
+    """Spell out a table row's columns, which are pages away in the PDF; small models misread
+    "14464-46-1 - 0.025 - - - - A2". Columns: 8-hour ppm, mg/m³, f/cc; 15-minute or ceiling ppm,
+    mg/m³; substance interaction; carcinogenicity. Rows that don't fit exactly are left alone."""
+    m = _OEL_ROW.match(line.strip())
+    if not m or not _OEL_VALUES.fullmatch(m.group("vals")):
+        return line
+    vals = re.findall(_OEL_VALUE, m.group("vals"))
+    if len(vals) not in (6, 7) or any(v.startswith("A") for v in vals[:6]):
+        return line
+    ppm8, mg8, fcc, ppm15, mg15, interaction = vals[:6]
+    carcinogen = vals[6] if len(vals) == 7 else "-"
+    ceiling = "(c)" in ppm15 + mg15
+    ppm15, mg15 = ppm15.replace("(c)", "").strip(), mg15.replace("(c)", "").strip()
+    name = f"{m.group('name')} (CAS {m.group('cas')})" if m.group("name") else f"CAS {m.group('cas')}"
+    out = [f"8-hour limit: {_amount(ppm8, mg8, fcc) or 'none'}"]
+    short = _amount(ppm15, mg15)
+    out.append(f"{'ceiling' if ceiling else '15-minute'} limit: {short}" if short
+               else "no 15-minute or ceiling limit")
+    if interaction != "-":
+        out.append(f"substance interaction note {interaction}")
+    if carcinogen != "-":
+        out.append(f"carcinogen {carcinogen}")
+    return f"{name}: {'; '.join(out)}"
+
+
 def _strip_page_header(lines: list[str]) -> list[str]:
     """Each page starts with e.g. "Section 218  AR 191/2021", "OCCUPATIONAL HEALTH AND SAFETY CODE", "169"."""
     seen_title = False
@@ -65,6 +104,7 @@ def statute_to_markdown(pages: list[str], title: str) -> str:
     after_break = True  # the previous line ended a sentence, a section, or was a marker
     current = (0, 0)
     in_schedules = False
+    in_oel_table = False  # Schedule 1, Table 2: occupational exposure limits
 
     def flush():
         nonlocal container
@@ -82,7 +122,7 @@ def statute_to_markdown(pages: list[str], title: str) -> str:
             continue
         if text == "Schedules" or (m := _SCHEDULE.match(text)):
             flush()
-            in_schedules = True
+            in_schedules, in_oel_table = True, False
             if text != "Schedules":
                 container, after_break = f"## Schedule {m.group(1)}", True
             continue
@@ -92,12 +132,13 @@ def statute_to_markdown(pages: list[str], title: str) -> str:
                 flush()
             elif _TABLE.match(text):
                 out.extend(["", f"#### {text}"])
-                caption_next = True
+                caption_next, in_oel_table = True, False
                 continue
             elif caption_next:
                 out[-1] += f" — {text}"
+                in_oel_table = "exposure limits for chemical substances" in text.lower()
             else:
-                out.append(line)
+                out.append(_oel_row(line) if in_oel_table else line)
             caption_next = False
             continue
         if m := _PART.match(text):

@@ -53,7 +53,11 @@ _WORKPLACE = re.compile(
     r"pa(y|id)|wage|salary|fired|terminat\w*|harass\w*|bull(y|ied|ying)|discriminat\w*|unsafe|injur\w*|"
     r"hr|union|complaint|case|incident|patron|travail\w*|emploi\w*|harc[eè]lement|coll[eè]gue|"
     r"law|laws|legal|regulations?|rights?|ohs|osha|wcb|safety|noise|minimum wage|break|leave|vacation|"
-    r"holiday|contract|benefits?|loi|droits?|r[eè]glement\w*|s[eé]curit[eé]|salaire)\b",
+    r"holiday|contract|benefits?|loi|droits?|r[eè]glement\w*|s[eé]curit[eé]|salaire|"
+    # Documenting a case, and the hazards and steps that come up in real cases.
+    r"document\w*|record\w*|evidence|notes?|timeline|timestamp\w*|witness\w*|sds|whmis|silica|"
+    r"chemicals?|exposure|exposed|hazard\w*|ppe|respirators?|masks?|nda|settlement|mediation|"
+    r"contractor|reprisal|retaliat\w*|dismiss\w*|refuse)\b",
     re.IGNORECASE,
 )
 # A reply that offers to write code, even without any code in it yet. Kept narrow on purpose:

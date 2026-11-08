@@ -142,7 +142,8 @@ All endpoints require authentication.
   - Migration `cases/0004_link_chat_entries` linked existing chats to their generated entries, deleted the extra copies (generated title, no description only) and left the newest chat per case open.
 - `GET/POST /api/cases/<case_pk>/conversations/<id>/messages/`. POST `{content, province?, language?, entry_title?, entry_date?}` is owner-only and synchronous. It returns `{user_message, reply}`:
   - Crisis check first (`apps/chat/crisis.py`, English and French). If flagged, it saves only the user message with `flagged_crisis=True` and returns `reply: null` plus a plain-text `crisis_resources`. It **skips the model**, and flagged messages are never sent to a model later. The frontend shows its own translated `CrisisBanner`.
-  - Otherwise it builds the prompt (`apps/chat/prompts.py`): `system.md` + the law reference, then calls `llm.chat()` with `Write your reply in <language>` and saves both messages. A model failure or empty reply returns 502 and saves **nothing**, so the frontend can safely resend.
+  - Otherwise it builds the prompt (`apps/chat/prompts.py`): `system.md` + the list of the province's document titles + the verified contacts in `prompts/contacts/<CODE>.md` (always included, never ingested; check every number on the official site before changing it) + the law reference. Then it calls `llm.chat()` (temperature `CHAT_TEMPERATURE`, default 0.2) with `Write your reply in <language>` and saves both messages.
+  - History: user messages up to `CHAT_HISTORY_LIMIT`, but only the newest `CHAT_HISTORY_ASSISTANT_TURNS` (2) assistant replies, so the small model doesn't repeat its own earlier mistakes. A model failure or empty reply returns 502 and saves **nothing**, so the frontend can safely resend.
   - Retrieval may call the embedding model, so it **must stay after** the crisis check.
   - **Scope is strict**: the assistant only helps with workplace issues (rights, harassment, safety, documenting incidents, next steps, related support). Three layers, in `apps/chat/scope.py` and `prompts/system.md`:
     1. **Before the model**, `is_off_topic_request` refuses obvious requests for code or plain arithmetic with no model call. Messages that mention work (boss, pay, harassment and similar) always go through.
@@ -153,8 +154,8 @@ All endpoints require authentication.
   - Replies are Markdown; the frontend renders them with `react-markdown` + `remark-gfm` (`components/case/Markdown.tsx`, no raw HTML).
 
 ### Law reference RAG (`apps/knowledge`)
-- Source docs: `backend/prompts/provinces/<CODE>.md` (summary) and `<CODE>/*.md` / `<CODE>/*.pdf`. AB has the summary plus the King's Printer consolidations of the Employment Standards Code and the OHS Code (`AB/*.pdf`).
-  - PDFs are converted by `pdf.py` (pypdf): it drops the table of contents, page headers and amendment-history lines, and emits `## Part` / `### Division` / `#### <section> <heading>` / `## Schedule N` Markdown. It only understands King's Printer consolidations and skips other PDFs with a warning.
+- Source docs: `backend/prompts/provinces/<CODE>.md` (summary) and `<CODE>/*.md` / `<CODE>/*.pdf`. AB has the summary plus the King's Printer consolidations of the Employment Standards Code, the OHS Code, the Alberta Human Rights Act and the Workers Compensation Act (`AB/*.pdf`), and the OHS Act (`AB/OHS Act.md`: pasted text converted once with `statute_to_markdown`, since `.md` files are ingested as-is and need `#` headings).
+  - PDFs are converted by `pdf.py` (pypdf): it drops the table of contents, page headers and amendment-history lines, and emits `## Part` / `### Division` / `#### <section> <heading>` / `## Schedule N` Markdown. Rows of the OHS Code's exposure-limit table (Schedule 1, Table 2) are spelled out with their column names (`_oel_row`), because the model misread bare values like `- 0.025 - - - - A2`; rows that don't fit exactly are left as they are. It only understands King's Printer consolidations and skips other PDFs with a warning.
 - `manage.py ingest_laws [--province AB] [--no-embed] [--async-embed]`. It is idempotent (skips unchanged content via `content_hash`). Bump `INGEST_VERSION` in `ingest.py` when chunking or graph building changes, so everything is re-ingested.
   - Splits by headings, one chunk per section (`chunker.py`); long sections split on paragraphs, and very long paragraphs (lists, tables) on lines.
   - Parses cross-references ("section 23", "Schedule 3") with regex into `LawReference` edges (`references.py`), within the same document only. Schedules also link back to the sections in their "[See sections …]" note. No LLM is used to build the graph.
@@ -162,7 +163,8 @@ All endpoints require authentication.
 - Retrieval (`retrieval.py`):
   - Hybrid search filtered by province: Postgres full-text + pgvector cosine, merged with reciprocal rank fusion. Returns the top `RAG_TOP_K`.
   - Full-text weights each query term by its rarity in the province (IDF), so "noise" beats "health"/"safety" in an OHS question.
-  - Then expands one hop along reference edges.
+  - Before full-text search, `_legal_terms` swaps everyday words for the law's wording (fired → termination/disciplinary action, reprisal → disciplinary action, SDS, WCB, mask). "Fired" otherwise stems to "fire" and pulls in fire-hazard sections.
+  - Then expands one hop along reference edges (at most `MAX_LINKED` = 2 extra sections).
   - Falls back to full-text only when there are no embeddings or embedding fails.
 - If a province has no ingested chunks, the whole `<CODE>.md` file is used instead.
 - `llm.py` sends `provider.data_collection = settings.OPENROUTER_DATA_COLLECTION` (default `deny`). `.env.example` sets `allow` **for dev only** so the free model works. **Switch back to `deny` before real user data.**

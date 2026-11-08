@@ -183,6 +183,11 @@ if OPENROUTER_DATA_COLLECTION not in ('deny', 'allow'):
     raise ImproperlyConfigured('OPENROUTER_DATA_COLLECTION must be "deny" or "allow"')
 CHAT_DEFAULT_PROVINCE = os.environ.get('CHAT_DEFAULT_PROVINCE', 'AB')
 CHAT_HISTORY_LIMIT = int(os.environ.get('CHAT_HISTORY_LIMIT', '40'))
+# Only the newest assistant replies are resent (user messages are all kept, up to the limit), so the
+# model doesn't repeat its own earlier mistakes and each message costs less.
+CHAT_HISTORY_ASSISTANT_TURNS = int(os.environ.get('CHAT_HISTORY_ASSISTANT_TURNS', '2'))
+# Low temperature: fewer invented names, laws and numbers.
+CHAT_TEMPERATURE = float(os.environ.get('CHAT_TEMPERATURE', '0.2'))
 
 # RAG over province law references (apps.knowledge). Empty EMBEDDING_MODEL = full-text search only.
 EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'openai/text-embedding-3-small')

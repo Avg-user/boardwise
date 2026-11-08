@@ -16,7 +16,7 @@
 :root {
   color-scheme: light;
 
-  --color-bg: #f6f5f1;
+  --color-bg: #f1eee6; /* warm beige paper; the pitch deck uses the same colour */
   --color-surface: #ffffff;
   --color-sunken: #f0eee8;
   --color-raised: #e7e4dc;

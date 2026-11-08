@@ -107,5 +107,5 @@ Additional rules apply to employees under 18: https://www.alberta.ca/youth-emplo
 - An employer with a government variance must give affected employees a copy.
 
 ## Complaints and help
-- Raise the issue with the employer first; if unresolved, file a complaint: https://www.alberta.ca/file-employment-standards-complaint
+- Raise the issue with the employer first (unless you have been fired, it isn't safe, or you fear reprisal); if unresolved, file a complaint: https://www.alberta.ca/file-employment-standards-complaint
 - Employment Standards Contact Centre: https://www.alberta.ca/contact-employment-standards, toll-free 1-877-427-3731, Edmonton 780-427-3731.
