@@ -13,6 +13,8 @@ function initials(name: string): string {
 type HeaderMenuProps = {
   user: User | null
   onSignOut: () => void
+  /** Locks the app until the password is entered again. */
+  onLock: () => void
 }
 
 /**
@@ -20,7 +22,7 @@ type HeaderMenuProps = {
  * A disclosure (button plus panel), not an ARIA menu, because it holds a dropdown and
  * ordinary buttons that should keep their usual keyboard behaviour.
  */
-function HeaderMenu({ user, onSignOut }: HeaderMenuProps) {
+function HeaderMenu({ user, onSignOut, onLock }: HeaderMenuProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [displayOpen, setDisplayOpen] = useState(false)
@@ -107,6 +109,16 @@ function HeaderMenu({ user, onSignOut }: HeaderMenuProps) {
         {user && (
           <>
             <hr className="header-menu__divider" />
+            <button
+              type="button"
+              className="header-menu__item"
+              onClick={() => {
+                close({ returnFocus: false })
+                onLock()
+              }}
+            >
+              {t('lock.lockNow')}
+            </button>
             <button
               type="button"
               className="header-menu__item"

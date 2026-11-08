@@ -20,6 +20,24 @@
     "account": "Menu du compte, {{name}}",
     "signedInAs": "Connecté en tant que"
   },
+  "quickExit": {
+    "label": "Sortie rapide",
+    "hint": "Quittez ce site tout de suite et déconnectez-vous. Vous pouvez aussi appuyer deux fois sur Échap."
+  },
+  "lock": {
+    "lockNow": "Verrouiller",
+    "title": "Boardwise est verrouillé",
+    "idle_one": "Il s'est verrouillé après {{count}} minute sans activité, pour que personne d'autre ne voie vos dossiers.",
+    "idle_other": "Il s'est verrouillé après {{count}} minutes sans activité, pour que personne d'autre ne voie vos dossiers.",
+    "manual": "Il est verrouillé, pour que personne d'autre ne voie vos dossiers.",
+    "passwordFor": "Mot de passe de {{name}}",
+    "unlock": "Déverrouiller",
+    "unlocking": "Déverrouillage…",
+    "wrongPassword": "Ce mot de passe n'a pas fonctionné. Réessayez.",
+    "someoneElse": "Ce n'est pas vous? Connectez-vous avec un autre compte",
+    "warning": "Boardwise se verrouillera dans 1 minute pour protéger la confidentialité de vos dossiers.",
+    "stay": "Continuer"
+  },
   "display": {
     "title": "Paramètres d'affichage",
     "theme": "Thème",

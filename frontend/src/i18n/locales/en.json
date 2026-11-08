@@ -20,6 +20,24 @@
     "account": "Account menu, {{name}}",
     "signedInAs": "Signed in as"
   },
+  "quickExit": {
+    "label": "Quick exit",
+    "hint": "Leave this site right away and sign out. You can also press Esc twice."
+  },
+  "lock": {
+    "lockNow": "Lock now",
+    "title": "Boardwise is locked",
+    "idle_one": "It locked after {{count}} minute without activity, so no one else can see your issues.",
+    "idle_other": "It locked after {{count}} minutes without activity, so no one else can see your issues.",
+    "manual": "It's locked, so no one else can see your issues.",
+    "passwordFor": "Password for {{name}}",
+    "unlock": "Unlock",
+    "unlocking": "Unlocking…",
+    "wrongPassword": "That password didn't work. Try again.",
+    "someoneElse": "Not you? Sign in as someone else",
+    "warning": "Boardwise will lock in 1 minute to keep your issues private.",
+    "stay": "Keep working"
+  },
   "display": {
     "title": "Display settings",
     "theme": "Theme",
