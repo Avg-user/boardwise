@@ -32,7 +32,7 @@ backend/
   prompts/           system.md + provinces/<CODE>.md (LLM prompt text)
     tasks/           checklist items
     lawfirms/        firm profiles, matchmaking
-    hr/              anonymous reports, dashboard aggregates
+    hr/              companies, anonymous incident reports, dashboard aggregates, job offer review
     knowledge/       province law references for RAG: chunks, embeddings, cross-reference graph
     speech/          dictation tickets for the speech service (no models)
 speech/              speech service (docker): WebSocket dictation with faster-whisper; streaming.py, server.py, tickets.py
@@ -73,7 +73,7 @@ cd backend
 .venv/bin/python manage.py seed_demo                   # add --reset to rebuild; refuses unless DEBUG=True
 .venv/bin/python manage.py runserver
 ```
-Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed). The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request.
+Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed). The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request. `hr` manages the verified company "Northwind Logistics" (sample reports and one reviewed job offer); `victim` works there with reporting turned on.
 
 Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down before deploying).
 
@@ -101,7 +101,12 @@ Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down befo
 - `lawfirms`:
   - `LawFirmProfile` (one per law-firm user): about, practice areas, languages, provinces, fees (free consultation, hourly range, flat fee, contingency, sliding scale, legal aid), public contact, `law_society_number`, `is_verified`, `accepting_clients`. `LawFirmProfile.objects.listed()` = verified + accepting + has name and description.
   - `MatchRequest` (case, firm, worker's note, status pending/accepted/declined/withdrawn/ended, linked `CaseShare`).
-- `hr` has no models yet.
+- `hr`:
+  - `Company` (name, province, city, `is_verified`). `Company.objects.listed()` = verified.
+  - `HRMembership` (HR user → company; HR creates one with `PUT /api/hr/company/`, staff add more in the admin).
+  - `WorkerMembership` (worker → company, `reporting_opt_in`, plus a per-month report counter for rate limiting).
+  - `IncidentReport` (company, category, `occurred_month`, ongoing). **No user, no timestamp, UUID key**: reports can't be traced to anyone, even with database access. Don't add fields that could link them (user, created_at, IP, sequential IDs).
+  - `JobOffer` (company, file in private storage or pasted text, province, status, summary, findings JSON).
 
 ### Endpoints
 All endpoints require authentication.
@@ -159,6 +164,14 @@ All endpoints require authentication.
 - `llm.py` sends `provider.data_collection = settings.OPENROUTER_DATA_COLLECTION` (default `deny`). `.env.example` sets `allow` **for dev only** so the free model works. **Switch back to `deny` before real user data.**
 - Chat env vars: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_DATA_COLLECTION` (`deny`|`allow`), `OPENROUTER_MAX_RETRIES` (default 4; the SDK retries 429/5xx), `CHAT_DEFAULT_PROVINCE` (default `AB`), `CHAT_HISTORY_LIMIT` (default 40; crisis-flagged messages are never sent to the model), `EMBEDDING_MODEL` (default `openai/text-embedding-3-small`; empty = full-text only), `RAG_TOP_K` (6), `RAG_SEARCH_CONFIG` (`english`).
 
+### HR (`apps/hr`)
+- **Companies**: HR creates its company (`GET/PUT/PATCH /api/hr/company/`). Staff verify it in the admin ("Mark as verified"). Renaming removes verification. Unverified companies aren't listed, can't receive reports, and their HR gets 403 on the dashboard and job offers.
+- **Workers**: `GET /api/companies/?q=` lists verified companies. `GET/PUT/PATCH/DELETE /api/workplace/` sets the worker's company and `reporting_opt_in` (choosing a company never opts in; DELETE leaves and opts out). `POST /api/workplace/reports/ {category, occurred_month: "YYYY-MM", ongoing}` returns **204 with no body** and logs nothing. Needs a verified company and opt-in; at most `HR_REPORTS_PER_MONTH` (5) per worker per calendar month (429 after). Months can't be in the future or more than 24 months back. Leaving doesn't delete sent reports (they can't be found).
+- **Dashboard**: `GET /api/hr/dashboard/` (`dashboard.py`): last 12 months by `occurred_month`, only the HR user's company. Nothing at all below `HR_MIN_GROUP_SIZE` (5, minimum 3) reports. Counts 1..k-1 come back as `null`; if a breakdown has exactly one hidden count, the next smallest is hidden too (no subtracting from the total). Months and categories are never crossed. Known limit: a live dashboard can still leak through changes over time (a count going up the day after someone reported).
+- **Job offers**: `/api/hr/job-offers/` (list, create, retrieve, delete, `retry/`). Multipart `file` (PDF, DOCX, TXT/MD, 5 MB) or `text`. The review runs in Celery (`tasks.review_job_offer`, `offer_review.py`): extract text, retrieve law sections for a fixed list of topics plus the offer itself, then `llm.chat` with `prompts/job_offer_review.md`, which asks for JSON findings (`violation`/`concern`/`info` with quote and citation). A non-JSON reply is kept as the summary. The offer is wrapped in `<job_offer>` and the prompt says it's data, not instructions. The free reasoning model sometimes spends its whole 8192-token output budget thinking (always, on an 11-page contract in one go), so: the offer is split into parts of ~4,000 characters (`split_offer`, at most 8 parts), each part gets its own 8 law sections, each call uses `reasoning={"effort": "low"}` and is retried up to `JOB_OFFER_REVIEW_ATTEMPTS` (3) times when empty. `info` ("missing") findings are dropped for multi-part offers, since one part can't tell what's missing. Parts that never answer are listed in `parts_unchecked` with `failure="partial"` (status stays done), and Retry reruns the whole offer. Set `JOB_OFFER_MODEL` to use a different model for this only (the OpenRouter account's guardrail must allow it). If the queue is down the offer is marked failed, not left pending. Failed offers carry a `failure` reason: `no_text` (e.g. a scanned PDF, whose pages are images; there is no OCR yet), `unreadable`, `model` or `queue` (and `partial` on a done offer). The UI explains `no_text`/`unreadable` and only offers Retry for the others.
+- Frontend: `/hr` (`HrHomePage`: company setup, dashboard charts, job offer check) and `/workplace` for workers (`WorkplacePage`).
+- Env: `HR_MIN_GROUP_SIZE`, `HR_REPORTS_PER_MONTH`, `JOB_OFFER_MODEL`, `JOB_OFFER_REVIEW_ATTEMPTS`, `CELERY_TASK_ALWAYS_EAGER` (1 = run tasks in the request, so dev works without a worker).
+
 ### Voice dictation (`speech/` service + `apps/speech`)
 - The chat box has a **Speak** button. While listening, the box is read-only: finished words show solid and the words still being recognised show grey. On **Stop** it becomes editable at once: the grey words go in, then the final text replaces them unless edited. **Send** while listening stops, waits up to 1 s, then sends.
 - Dictated text is only a draft. It goes through the normal send path (crisis check, scope guard), so nothing reaches the LLM until the person presses Send.
@@ -174,8 +187,14 @@ All endpoints require authentication.
 - `faster-whisper==1.2.1` needs `av==16.1.0`: av 17+ removed an argument it uses.
 - Env: `SPEECH_TICKET_SECRET` (Django and the container, from the root `.env`), `SPEECH_MODEL` (`base`; `tiny` is faster, `small` is too slow for live on CPU), `SPEECH_MAX_SESSIONS`, `SPEECH_IDLE_UNLOAD_S`, `DICTATION_MAX_SECONDS` (180), `SPEECH_CPUS`, `SPEECH_THREADS`, `SPEECH_TICKET_TTL` (60), `SPEECH_WS_URL` (`/speech/ws`). In production, route `/speech/` to the speech service with WebSocket upgrades and keep port 9100 private.
 
+### Frontend look
+- One stylesheet, `frontend/src/index.css`, built on tokens at the top: paper background, white cards (`--color-surface`) with hairline borders, ink actions (`--color-action`), safety yellow (`--color-primary`) only for marks and highlights. Partners swap `--color-brand`/`--color-action` (`data-theme="hr"` blue, `"firm"` gold). Dark mode redefines the same tokens.
+- Buttons: `.button` (main action, one per area), `.button--secondary`, `.button--small`, `.button-quiet`, `.icon-button`. Cards: `.panel` and the card classes listed under "Cards".
+- `components/Icon.tsx` (small hand-drawn line icons) and `components/ActionMenu.tsx` (a "⋯" button with secondary actions, e.g. rename/close an issue, download/close a chat). Prefer these to rows of text links.
+- `GET /api/cases/` includes `timeline_count`, `tasks_total`, `tasks_done` and, for the owner only, `shared_count` (subqueries, so the shares join in `accessible_by` can't skew them).
+
 ### Tests
-`apps/speech/tests.py` (ticket access rules and format), `speech/tests.py` (tickets, streaming, server protocol and limits, with a fake model; run in the container), `apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback), `apps/lawfirms/tests.py` (registration, profiles, directory, match flow and privacy). Chat tests mock `llm.chat`; tests must never call the real model.
+`apps/speech/tests.py` (ticket access rules and format), `speech/tests.py` (tickets, streaming, server protocol and limits, with a fake model; run in the container), `apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback), `apps/lawfirms/tests.py` (registration, profiles, directory, match flow and privacy), `apps/hr/tests.py` (suppression, company verification, workplace opt-in, unlinkable reports and rate limit, job offer access, review parsing and retries). Chat tests mock `llm.chat`; tests must never call the real model.
 
 ### Not built yet
 - WebSocket streaming for chat. The frontend (`frontend/src/api/chat.ts`) calls the synchronous endpoint and passes the whole reply to `onDelta` once. Proposed message format:
@@ -183,7 +202,6 @@ All endpoints require authentication.
   - `server → crisis | token(delta) | done(message_id) | error`
 - Celery tasks for document extraction and timeline generation (`TODO(llm)` in `documents/views.py`).
 - Firm case statistics, and notifying firms and workers about new requests and answers.
-- HR: anonymous reports and a dashboard that applies a minimum group size.
 - Encrypted file storage.
 - RAG follow-ups: HTML ingestion, PDFs other than King's Printer consolidations, a per-province eval set (question → expected section), an HNSW index once the corpus grows, and a French search config for QC.
 

@@ -17,14 +17,20 @@ def get_client() -> OpenAI:
     return _client
 
 
-def chat(messages: list[dict], model: str | None = None, stream: bool = False, **kwargs):
+def chat(messages: list[dict], model: str | None = None, stream: bool = False,
+         reasoning: dict | None = None, **kwargs):
+    """`reasoning` is OpenRouter's reasoning setting, e.g. {"effort": "low"} for long inputs where a
+    reasoning model would otherwise spend its whole output budget thinking."""
+    # Sensitive data: "deny" routes only to providers that don't store/train on prompts.
+    # Dev-only override via OPENROUTER_DATA_COLLECTION=allow (needed for free models).
+    extra_body = {"provider": {"data_collection": settings.OPENROUTER_DATA_COLLECTION}}
+    if reasoning:
+        extra_body["reasoning"] = reasoning
     return get_client().chat.completions.create(
         model=model or settings.OPENROUTER_MODEL,
         messages=messages,
         stream=stream,
-        # Sensitive data: "deny" routes only to providers that don't store/train on prompts.
-        # Dev-only override via OPENROUTER_DATA_COLLECTION=allow (needed for free models).
-        extra_body={"provider": {"data_collection": settings.OPENROUTER_DATA_COLLECTION}},
+        extra_body=extra_body,
         **kwargs,
     )
 

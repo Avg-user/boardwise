@@ -170,6 +170,8 @@ REST_FRAMEWORK = {
 
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+# Dev convenience: run tasks in the request instead of needing a worker (CELERY_TASK_ALWAYS_EAGER=1).
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', '') == '1'
 
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
@@ -195,6 +197,15 @@ SPEECH_WS_URL = os.environ.get('SPEECH_WS_URL', '/speech/ws')  # where the brows
 
 # Uploaded case files: never under STATIC/MEDIA URLs.
 PRIVATE_MEDIA_ROOT = os.environ.get('PRIVATE_MEDIA_ROOT', str(BASE_DIR / 'private_media'))
+
+# HR dashboard: counts below this are hidden, and nothing is shown until a company has this many
+# reports. Reports per worker per calendar month (counted without linking reports to anyone).
+HR_MIN_GROUP_SIZE = max(3, int(os.environ.get('HR_MIN_GROUP_SIZE', '5')))
+HR_REPORTS_PER_MONTH = int(os.environ.get('HR_REPORTS_PER_MONTH', '5'))
+# Job offer review: optional model just for this (empty = OPENROUTER_MODEL), and how many times to
+# ask when a reasoning model returns nothing.
+JOB_OFFER_MODEL = os.environ.get('JOB_OFFER_MODEL', '')
+JOB_OFFER_REVIEW_ATTEMPTS = int(os.environ.get('JOB_OFFER_REVIEW_ATTEMPTS', '3'))
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Boardwise API',

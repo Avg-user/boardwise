@@ -8,6 +8,7 @@ import { useCurrentUser } from '../auth/useCurrentUser.ts'
 import NewCaseDialog from '../components/NewCaseDialog.tsx'
 import CaseTimeline from '../components/case/CaseTimeline.tsx'
 import { Owl } from '../components/brand/Owl.tsx'
+import Icon from '../components/Icon.tsx'
 
 type CaseCardProps = {
   item: Case
@@ -18,32 +19,36 @@ type CaseCardProps = {
 
 function CaseCard({ item, dateFormat, isPreviewed, onPreview }: CaseCardProps) {
   const { t } = useTranslation()
+  const entries = item.timeline_count ?? 0
+  const total = item.tasks_total ?? 0
+  const done = item.tasks_done ?? 0
+  const shared = item.shared_count ?? 0
 
   return (
     <Link
       className="case-card"
       to={`/cases/${item.id}`}
       data-previewed={isPreviewed}
+      data-status={item.status}
       onMouseEnter={() => onPreview(item.id)}
       onFocus={() => onPreview(item.id)}
     >
       <span className="case-card__title">{item.title}</span>
       <span className="case-card__meta">
-        <span className="visually-hidden">{t('cases.updatedLabel')} </span>
-        <time dateTime={item.updated_at}>{dateFormat.format(new Date(item.updated_at))}</time>
+        <span>
+          {t('cases.updated')}{' '}
+          <time dateTime={item.updated_at}>{dateFormat.format(new Date(item.updated_at))}</time>
+        </span>
+        {entries > 0 && <span>{t('cases.meta.entries', { count: entries })}</span>}
+        {total > 0 && <span>{t('cases.meta.steps', { done, total })}</span>}
+        {shared > 0 && <span className="case-card__shared">{t('cases.meta.shared', { count: shared })}</span>}
       </span>
-      <svg
-        className="case-card__arrow"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="m9 6 6 6-6 6" />
-      </svg>
+      {total > 0 && (
+        <span className="case-card__progress" aria-hidden="true">
+          <span style={{ width: `${(done / total) * 100}%` }} />
+        </span>
+      )}
+      <Icon name="chevronRight" className="case-card__arrow" />
     </Link>
   )
 }
@@ -54,13 +59,8 @@ type CaseListProps = Omit<CaseCardProps, 'item' | 'isPreviewed'> & {
 }
 
 function CaseList({ cases, previewId, ...cardProps }: CaseListProps) {
-  const { t } = useTranslation()
   return (
     <ul className="case-list">
-      <li className="case-list__head" aria-hidden="true">
-        <span>{t('cases.columnIssue')}</span>
-        <span>{t('cases.columnUpdated')}</span>
-      </li>
       {cases.map((item) => (
         <li key={item.id}>
           <CaseCard item={item} isPreviewed={item.id === previewId} {...cardProps} />
@@ -92,12 +92,7 @@ function HelpPanel() {
   const { t } = useTranslation()
   return (
     <aside className="help-panel" aria-label={t('cases.help.label')}>
-      <section className="help-card">
-        <h2>{t('cases.help.lawyerTitle')}</h2>
-        <p>{t('cases.help.lawyerText')}</p>
-        <Link to="/lawyers">{t('cases.help.lawyerLink')}</Link>
-      </section>
-      <section className="help-card help-card--urgent">
+      <section className="help-panel__section help-panel__section--urgent">
         <h2>{t('cases.help.urgentTitle')}</h2>
         <ul className="help-links">
           <li>
@@ -108,7 +103,15 @@ function HelpPanel() {
           </li>
         </ul>
       </section>
-      <section className="help-card">
+      <section className="help-panel__section">
+        <h2>{t('cases.help.lawyerTitle')}</h2>
+        <p>{t('cases.help.lawyerText')}</p>
+        <Link className="arrow-link" to="/lawyers">
+          {t('cases.help.lawyerLink')}
+          <Icon name="chevronRight" />
+        </Link>
+      </section>
+      <section className="help-panel__section">
         <h2>{t('cases.help.privacyTitle')}</h2>
         <p>{t('cases.help.privacyText')}</p>
       </section>
@@ -154,15 +157,18 @@ function CasesPage() {
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
       <div className="page-header">
-        <h1>{title}</h1>
+        <div>
+          <h1>{title}</h1>
+          <p className="page-description">{t('cases.description')}</p>
+        </div>
         {canCreate && (
           <button type="button" className="button" onClick={() => setIsCreating(true)}>
+            <Icon name="plus" />
             {t('cases.newIssue')}
           </button>
         )}
       </div>
       {canCreate && <NewCaseDialog open={isCreating} onClose={() => setIsCreating(false)} />}
-      <p className="page-description">{t('cases.description')}</p>
       {isLoading && <p role="status">{t('common.loading')}</p>}
       {isError && (
         <p className="form-error" role="alert">
