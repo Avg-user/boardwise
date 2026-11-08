@@ -1,6 +1,7 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { listConversations, listMessages } from '../../api/chat.ts'
+import { useClosedSessions } from '../../api/closedSessions.ts'
 
 export function conversationsQuery(caseId: number) {
   return queryOptions({
@@ -18,18 +19,27 @@ export function messagesQuery(caseId: number, conversationId: number) {
 
 /** The URL parameter that picks a past chat session, as in `/cases/4?session=12`. */
 export const SESSION_PARAM = 'session'
+/** `?session=new` shows a blank chat. The session itself is only created when the first message is sent. */
+export const NEW_SESSION = 'new'
 
 /**
- * The chat session being viewed: the one named in the URL if it belongs to this case,
- * otherwise the most recent.
+ * The chat session being viewed. That's the one named in the URL if it belongs to this
+ * case. Otherwise it's the current session: the most recent one that isn't closed. If
+ * every session is closed there's no current one, and the next message starts a new chat.
  */
 export function useConversation(caseId: number) {
   const [searchParams] = useSearchParams()
-  const requestedId = Number(searchParams.get(SESSION_PARAM))
+  const param = searchParams.get(SESSION_PARAM)
+  const wantsNew = param === NEW_SESSION
+  const requestedId = Number(param)
+  const closed = useClosedSessions()
   const conversations = useQuery(conversationsQuery(caseId))
   const list = conversations.data ?? []
-  const latest = list[0] ?? null
-  const conversation = list.find((item) => item.id === requestedId) ?? latest
+  // The list is newest first.
+  const current = list.find((item) => !closed.has(item.id)) ?? null
+  const conversation = wantsNew
+    ? null
+    : (list.find((item) => item.id === requestedId) ?? current)
   const conversationId = conversation?.id ?? null
   const messages = useQuery({
     ...messagesQuery(caseId, conversationId ?? 0),
@@ -39,7 +49,13 @@ export function useConversation(caseId: number) {
   return {
     conversationId,
     conversation,
-    isLatest: conversation === latest,
+    /** The open chat, if any. Only one is kept open per issue. */
+    current,
+    /** True on `?session=new`: a blank chat not yet created on the server. */
+    isNewChat: wantsNew,
+    isCurrent: wantsNew || conversation === current,
+    isClosed: conversationId !== null && closed.has(conversationId),
+    closed,
     messages: messages.data ?? [],
     isLoading: conversations.isLoading || messages.isLoading,
     isError: conversations.isError || messages.isError,

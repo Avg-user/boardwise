@@ -641,11 +641,15 @@ button.button {
   padding: 1.5rem;
 }
 
-.dialog__body h2 {
+/* Extra specificity: dialogs opened inside a panel shouldn't take on the panel's small label style. */
+.dialog .dialog__body h2 {
   margin: 0;
+  color: var(--color-text);
   font-family: var(--font-display);
   font-size: 1.375rem;
+  font-weight: 800;
   letter-spacing: -0.01em;
+  text-transform: none;
 }
 
 .dialog__description {
@@ -1205,6 +1209,58 @@ p.message--user {
 
 .timeline__session[aria-current='true'] {
   background: var(--color-tint);
+}
+
+.timeline__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.125rem 0 0 -0.75rem;
+}
+
+.timeline__actions .button-quiet {
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+}
+
+.field > textarea {
+  width: 100%;
+  min-height: 5rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--color-control);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.chat__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.5rem -0.75rem -0.5rem 0;
+}
+
+/* Shown instead of the message box when a chat is closed. */
+.closed-bar {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.closed-bar p {
+  margin: 0;
+}
+
+.closed-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .session-notice {

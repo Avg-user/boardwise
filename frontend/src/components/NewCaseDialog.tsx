@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { createCase, MAX_CASE_TITLE_LENGTH } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
+import Dialog from './Dialog.tsx'
 
 type NewCaseDialogProps = {
   open: boolean
@@ -51,7 +52,7 @@ function NewCaseForm({ onClose }: { onClose: () => void }) {
           id="new-case-title"
           maxLength={MAX_CASE_TITLE_LENGTH}
           autoComplete="off"
-          autoFocus
+          data-autofocus
           aria-describedby="new-case-title-hint"
           aria-invalid={Boolean(error)}
           value={title}
@@ -78,38 +79,19 @@ function NewCaseForm({ onClose }: { onClose: () => void }) {
   )
 }
 
-/** A small pop-up for naming a new issue. The browser's modal dialog handles focus and Escape. */
+/** A small pop-up for naming a new issue. */
 function NewCaseDialog({ open, onClose }: NewCaseDialogProps) {
   const { t } = useTranslation()
-  const dialogRef = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (open && !dialog?.open) {
-      dialog?.showModal()
-    } else if (!open && dialog?.open) {
-      dialog.close()
-    }
-  }, [open])
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="dialog"
-      aria-labelledby="new-case-heading"
+    <Dialog
+      open={open}
       onClose={onClose}
-      // A click on the dialog element itself, rather than its contents, is a click on the backdrop.
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
+      title={t('newCase.title')}
+      description={t('newCase.description')}
     >
-      <div className="dialog__body">
-        <h2 id="new-case-heading">{t('newCase.title')}</h2>
-        <p className="dialog__description">{t('newCase.description')}</p>
-        {/* Mounted only while open, so the form starts empty each time. */}
-        {open && <NewCaseForm onClose={onClose} />}
-      </div>
-    </dialog>
+      <NewCaseForm onClose={onClose} />
+    </Dialog>
   )
 }
 
