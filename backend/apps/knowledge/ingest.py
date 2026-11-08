@@ -14,12 +14,14 @@ from .references import find_section_refs
 
 logger = logging.getLogger(__name__)
 EMBED_BATCH = 64
+# Bump when chunking or graph building changes, so unchanged documents are re-ingested too.
+INGEST_VERSION = "2"
 
 
 @transaction.atomic
 def ingest_markdown(province: str, slug: str, title: str, markdown: str, source_url: str = "") -> tuple[LawSource, bool]:
     """Replace a source's chunks. Returns (source, changed). Unchanged content is a no-op."""
-    digest = hashlib.sha256(markdown.encode()).hexdigest()
+    digest = hashlib.sha256(f"{INGEST_VERSION}\n{markdown}".encode()).hexdigest()
     source, created = LawSource.objects.get_or_create(
         province=province, slug=slug, defaults={"title": title, "source_url": source_url, "content_hash": ""}
     )
@@ -38,9 +40,13 @@ def ingest_markdown(province: str, slug: str, title: str, markdown: str, source_
     source.chunks.update(search_vector=SearchVector("heading", weight="A", config=settings.RAG_SEARCH_CONFIG)
                          + SearchVector("text", weight="B", config=settings.RAG_SEARCH_CONFIG))
 
-    # Graph edges: link each chunk to the sections it mentions (within the same province).
+    # Graph edges: link each chunk to the sections it mentions in the same document ("section 2"
+    # in the Employment Standards Code is not section 2 of the OHS Code).
     by_ref: dict[str, list[LawChunk]] = {}
-    for c in LawChunk.objects.filter(province=province).exclude(section_ref=""):
+    by_section_ref = {c.pk: c.section_ref for c in chunks}
+    for c in chunks:
+        if not c.section_ref:
+            continue
         by_ref.setdefault(c.section_ref, []).append(c)
     edges = {
         (c.pk, target.pk)
@@ -49,6 +55,9 @@ def ingest_markdown(province: str, slug: str, title: str, markdown: str, source_
         for target in by_ref.get(ref, [])
         if target.pk != c.pk
     }
+    # A schedule's "[See sections 218, 219(1)]" names the sections that use it, so link both ways:
+    # finding section 218 should bring in the Schedule 3 table of exposure limits.
+    edges |= {(b, a) for a, b in edges if by_section_ref.get(a, "").startswith("Schedule")}
     LawReference.objects.bulk_create(
         [LawReference(from_chunk_id=a, to_chunk_id=b) for a, b in edges], ignore_conflicts=True
     )

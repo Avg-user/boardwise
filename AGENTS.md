@@ -144,13 +144,15 @@ All endpoints require authentication.
   - Replies are Markdown; the frontend renders them with `react-markdown` + `remark-gfm` (`components/case/Markdown.tsx`, no raw HTML).
 
 ### Law reference RAG (`apps/knowledge`)
-- Source docs: `backend/prompts/provinces/<CODE>.md` and `<CODE>/*.md` (Markdown). Only `AB.md` exists so far.
-- `manage.py ingest_laws [--province AB] [--no-embed] [--async-embed]`. It is idempotent (skips unchanged content via `content_hash`).
-  - Splits by headings, one chunk per section (`chunker.py`); long sections split on paragraphs.
-  - Parses cross-references with regex into `LawReference` edges (`references.py`). No LLM is used to build the graph.
+- Source docs: `backend/prompts/provinces/<CODE>.md` (summary) and `<CODE>/*.md` / `<CODE>/*.pdf`. AB has the summary plus the King's Printer consolidations of the Employment Standards Code and the OHS Code (`AB/*.pdf`).
+  - PDFs are converted by `pdf.py` (pypdf): it drops the table of contents, page headers and amendment-history lines, and emits `## Part` / `### Division` / `#### <section> <heading>` / `## Schedule N` Markdown. It only understands King's Printer consolidations and skips other PDFs with a warning.
+- `manage.py ingest_laws [--province AB] [--no-embed] [--async-embed]`. It is idempotent (skips unchanged content via `content_hash`). Bump `INGEST_VERSION` in `ingest.py` when chunking or graph building changes, so everything is re-ingested.
+  - Splits by headings, one chunk per section (`chunker.py`); long sections split on paragraphs, and very long paragraphs (lists, tables) on lines.
+  - Parses cross-references ("section 23", "Schedule 3") with regex into `LawReference` edges (`references.py`), within the same document only. Schedules also link back to the sections in their "[See sections …]" note. No LLM is used to build the graph.
   - Embeds via `llm.embed()` (same `data_collection` policy). If embedding fails, chunks are still saved.
 - Retrieval (`retrieval.py`):
   - Hybrid search filtered by province: Postgres full-text + pgvector cosine, merged with reciprocal rank fusion. Returns the top `RAG_TOP_K`.
+  - Full-text weights each query term by its rarity in the province (IDF), so "noise" beats "health"/"safety" in an OHS question.
   - Then expands one hop along reference edges.
   - Falls back to full-text only when there are no embeddings or embedding fails.
 - If a province has no ingested chunks, the whole `<CODE>.md` file is used instead.
@@ -183,7 +185,7 @@ All endpoints require authentication.
 - Firm case statistics, and notifying firms and workers about new requests and answers.
 - HR: anonymous reports and a dashboard that applies a minimum group size.
 - Encrypted file storage.
-- RAG follow-ups: PDF/HTML ingestion for full statutes, a per-province eval set (question → expected section), an HNSW index once the corpus grows, and a French search config for QC.
+- RAG follow-ups: HTML ingestion, PDFs other than King's Printer consolidations, a per-province eval set (question → expected section), an HNSW index once the corpus grows, and a French search config for QC.
 
 ## Rules
 
