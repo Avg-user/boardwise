@@ -38,7 +38,11 @@ class Update:
 
 def load_model(name: str = "base", threads: int = 0) -> WhisperModel:
     """int8 on CPU: what whisper-live uses on CPU; fast with little accuracy loss."""
-    return WhisperModel(name, device="cpu", compute_type="int8", cpu_threads=threads)
+    try:  # use the cached copy without asking Hugging Face (saves ~1 s per load)
+        return WhisperModel(name, device="cpu", compute_type="int8", cpu_threads=threads,
+                            local_files_only=True)
+    except Exception:  # first run: not downloaded yet
+        return WhisperModel(name, device="cpu", compute_type="int8", cpu_threads=threads)
 
 
 class StreamingTranscriber:

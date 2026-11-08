@@ -26,6 +26,8 @@ export type DictationCallbacks = {
   onFinal: (text: string) => void
   /** Called once when the session ends, with a reason if it didn't end normally. */
   onEnd: (error: DictationError | null) => void
+  /** The mic is capturing: speak now. Audio is held until the server is ready, then sent. */
+  onListening: () => void
 }
 
 export class DictationFailure extends Error {
@@ -43,6 +45,11 @@ export const dictationSupported =
   typeof WebSocket !== 'undefined' &&
   typeof AudioWorkletNode !== 'undefined' &&
   Boolean(navigator.mediaDevices?.getUserMedia)
+
+/** Loads the speech model ahead of time; it unloads itself after 2 idle minutes. */
+export function warmDictation(): void {
+  fetch('/speech/warm').catch(() => {})
+}
 
 const WORKLET_URL = '/pcm-worklet.js'
 const STOP_TIMEOUT_MS = 10_000
@@ -91,7 +98,9 @@ export async function startDictation(
   }
 
   try {
-    // Ask for the mic first: the permission prompt can take longer than a ticket lasts.
+    // Load the resampler while the mic opens. Mic before ticket: the permission prompt can outlast a ticket.
+    context = new AudioContext() // created during the click, so the browser lets it start
+    const workletLoaded = context.audioWorklet.addModule(WORKLET_URL)
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
@@ -99,7 +108,24 @@ export async function startDictation(
     } catch {
       throw new DictationFailure('micDenied')
     }
+    await workletLoaded
     signal?.throwIfAborted()
+
+    // Capture from now on; frames wait in `queued` until the server says ready.
+    const queued: ArrayBuffer[] = []
+    let live: WebSocket | null = null
+    let flushed: () => void = () => {}
+    const source = context.createMediaStreamSource(stream)
+    const capture = new AudioWorkletNode(context, 'pcm-capture')
+    capture.port.onmessage = (event: MessageEvent<ArrayBuffer | 'flushed'>) => {
+      if (event.data === 'flushed') flushed()
+      else if (!live) queued.push(event.data)
+      else if (live.readyState === WebSocket.OPEN) live.send(event.data)
+    }
+    source.connect(capture)
+    // The worklet outputs silence; connecting it keeps every browser running it.
+    capture.connect(context.destination)
+    callbacks.onListening()
 
     let ticket: DictationTicket
     try {
@@ -127,20 +153,8 @@ export async function startDictation(
       socket.onclose = () => reject(new DictationFailure('failed'))
       signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
     })
-
-    context = new AudioContext()
-    await context.audioWorklet.addModule(WORKLET_URL)
-    signal?.throwIfAborted()
-    const source = context.createMediaStreamSource(stream)
-    const capture = new AudioWorkletNode(context, 'pcm-capture')
-    let flushed: () => void = () => {}
-    capture.port.onmessage = (event: MessageEvent<ArrayBuffer | 'flushed'>) => {
-      if (event.data === 'flushed') flushed()
-      else if (socket.readyState === WebSocket.OPEN) socket.send(event.data)
-    }
-    source.connect(capture)
-    // The worklet outputs silence; connecting it keeps every browser running it.
-    capture.connect(context.destination)
+    for (const frame of queued.splice(0)) socket.send(frame)
+    live = socket
 
     socket.onmessage = (event) => {
       const message = JSON.parse(String(event.data)) as ServerMessage

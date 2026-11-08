@@ -152,6 +152,16 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
             lambda: urllib.request.urlopen(f"http://127.0.0.1:{self.port}/health").read())
         self.assertEqual(body, b"ok\n")
 
+    async def test_warm_loads_model(self):
+        body = await asyncio.to_thread(
+            lambda: urllib.request.urlopen(f"http://127.0.0.1:{self.port}/warm").read())
+        self.assertEqual(body, b"ok\n")
+        for _ in range(50):
+            if self.speech.models.loaded:
+                break
+            await asyncio.sleep(0.01)
+        self.assertTrue(self.speech.models.loaded)
+
     async def test_dictation_round_trip(self):
         async with connect(self.url(make_ticket())) as ws:
             self.assertEqual(json.loads(await ws.recv()), {"type": "ready"})
