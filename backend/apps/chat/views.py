@@ -1,13 +1,15 @@
 import logging
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from apps.cases.models import TimelineEntry
 from apps.cases.permissions import CaseScopedMixin
 
 from . import llm
@@ -22,6 +24,19 @@ logger = logging.getLogger(__name__)
 LANGUAGES = {"en": "English", "fr": "French"}
 
 
+def _ensure_timeline_entry(convo, title, occurred_at):
+    """Each chat session is one timeline entry, created with its first saved message (or its next
+    one, if the entry was deleted). Call inside the transaction that saves the message."""
+    if TimelineEntry.objects.filter(conversation=convo).exists():
+        return
+    try:
+        with transaction.atomic():  # savepoint: a concurrent send may have just created it
+            TimelineEntry.objects.create(case_id=convo.case_id, conversation=convo, title=title,
+                                         occurred_at=occurred_at)
+    except IntegrityError:
+        pass
+
+
 class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateModelMixin,
                           mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """Conversation history, plus sending a message (synchronous for now; WebSocket streaming later)."""
@@ -30,10 +45,24 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
     queryset = Conversation.objects.none()
 
     def get_queryset(self):
-        return Conversation.objects.filter(case=self.get_case())
+        return Conversation.objects.filter(case=self.get_case()).select_related("timeline_entry")
 
+    @transaction.atomic
     def perform_create(self, serializer):
-        serializer.save(case=self.get_case())
+        # Only one chat is open per case: starting a new one closes the others.
+        case = self.get_case()
+        Conversation.objects.filter(case=case, closed_at__isnull=True).update(closed_at=timezone.now())
+        serializer.save(case=case)
+
+    @extend_schema(request=None, responses=ConversationSerializer)
+    @action(detail=True, methods=["post"])
+    def close(self, request, case_pk=None, pk=None):
+        """Close a chat (owner only). It stays readable; new messages are refused. Idempotent."""
+        convo = self.get_object()
+        if convo.closed_at is None:
+            convo.closed_at = timezone.now()
+            convo.save(update_fields=["closed_at"])
+        return Response(self.get_serializer(convo).data)
 
     @extend_schema(request=SendMessageSerializer, responses={201: SendMessageResponseSerializer})
     @action(detail=True, methods=["get", "post"], pagination_class=None)
@@ -45,6 +74,13 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
         data = SendMessageSerializer(data=request.data)
         data.is_valid(raise_exception=True)
         content = data.validated_data["content"]
+        if convo.closed_at is not None:
+            body = {"detail": "This chat is closed. Start a new chat to keep going."}
+            if is_crisis(content):  # still point someone in danger to help
+                body["crisis_resources"] = CRISIS_RESOURCES
+            return Response(body, status=status.HTTP_409_CONFLICT)
+        entry = (data.validated_data.get("entry_title") or "Chat session",
+                 data.validated_data.get("entry_date") or timezone.now().date())
         province = data.validated_data.get("province") or settings.CHAT_DEFAULT_PROVINCE
         language_code = data.validated_data.get("language", "en")[:2].lower()
         if language_code not in LANGUAGES:
@@ -59,8 +95,10 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
         # showing resources, but it is never sent to a model. The UI renders its own translated
         # resources; crisis_resources is for API clients without one.
         if is_crisis(content):
-            user_msg = Message.objects.create(conversation=convo, role=Message.Role.USER,
-                                              content=content, flagged_crisis=True)
+            with transaction.atomic():
+                user_msg = Message.objects.create(conversation=convo, role=Message.Role.USER,
+                                                  content=content, flagged_crisis=True)
+                _ensure_timeline_entry(convo, *entry)
             logger.info("Crisis flagged: conversation=%s message=%s", convo.pk, user_msg.pk)
             return Response({"user_message": MessageSerializer(user_msg).data, "reply": None,
                              "crisis_resources": CRISIS_RESOURCES}, status=status.HTTP_201_CREATED)
@@ -72,6 +110,7 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
                 user_msg = Message.objects.create(conversation=convo, role=Message.Role.USER, content=content)
                 reply = Message.objects.create(conversation=convo, role=Message.Role.ASSISTANT,
                                                content=refusal(language_code))
+                _ensure_timeline_entry(convo, *entry)
             return Response({"user_message": MessageSerializer(user_msg).data,
                              "reply": MessageSerializer(reply).data}, status=status.HTTP_201_CREATED)
 
@@ -111,5 +150,6 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
         with transaction.atomic():
             user_msg = Message.objects.create(conversation=convo, role=Message.Role.USER, content=content)
             reply = Message.objects.create(conversation=convo, role=Message.Role.ASSISTANT, content=text)
+            _ensure_timeline_entry(convo, *entry)
         return Response({"user_message": MessageSerializer(user_msg).data,
                          "reply": MessageSerializer(reply).data}, status=status.HTTP_201_CREATED)

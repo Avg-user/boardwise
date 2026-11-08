@@ -2,7 +2,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { deleteTimelineEntry } from '../../api/cases.ts'
-import { unlinkEntry, useSessionEntries } from '../../api/sessionEntries.ts'
 import type { TimelineEntry } from '../../api/types.ts'
 import ConfirmDialog from '../ConfirmDialog.tsx'
 import CaseTimeline from './CaseTimeline.tsx'
@@ -23,16 +22,15 @@ function TimelinePanel({ caseId, canEdit, onSessionSelect }: TimelinePanelProps)
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { conversationId } = useConversation(caseId)
-  const sessionEntries = useSessionEntries()
   const [editing, setEditing] = useState<TimelineEntry | null>(null)
   const [deleting, setDeleting] = useState<TimelineEntry | null>(null)
-  const deletingHasChat = deleting !== null && [...sessionEntries.values()].includes(deleting.id)
+  const deletingHasChat = deleting?.conversation != null
 
   async function confirmDelete() {
     if (!deleting) return
     await deleteTimelineEntry(caseId, deleting.id)
-    unlinkEntry(deleting.id)
-    await queryClient.invalidateQueries({ queryKey: ['cases', caseId, 'timeline'] })
+    // Refreshes the chat list too: its link to the entry is gone.
+    await queryClient.invalidateQueries({ queryKey: ['cases', caseId] })
   }
 
   return (

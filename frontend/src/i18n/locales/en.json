@@ -237,7 +237,8 @@
       "what": "Help me describe what happened",
       "rights": "What are my rights at work?",
       "record": "What should I write down and keep?"
-    }
+    },
+    "closedElsewhere": "This chat was closed, maybe on another device. Your message is still in the box: send it to start a new chat."
   },
   "transcript": {
     "download": "Download transcript",

@@ -237,7 +237,8 @@
       "what": "Aidez-moi à décrire ce qui s'est passé",
       "rights": "Quels sont mes droits au travail?",
       "record": "Que devrais-je noter et conserver?"
-    }
+    },
+    "closedElsewhere": "Cette discussion a été fermée, peut-être sur un autre appareil. Votre message est toujours dans la zone de texte : envoyez-le pour commencer une nouvelle discussion."
   },
   "transcript": {
     "download": "Télécharger la transcription",

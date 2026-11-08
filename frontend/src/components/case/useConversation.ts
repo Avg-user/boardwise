@@ -1,7 +1,6 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { listConversations, listMessages } from '../../api/chat.ts'
-import { useClosedSessions } from '../../api/closedSessions.ts'
 
 export function conversationsQuery(caseId: number) {
   return queryOptions({
@@ -32,11 +31,10 @@ export function useConversation(caseId: number) {
   const param = searchParams.get(SESSION_PARAM)
   const wantsNew = param === NEW_SESSION
   const requestedId = Number(param)
-  const closed = useClosedSessions()
   const conversations = useQuery(conversationsQuery(caseId))
   const list = conversations.data ?? []
-  // The list is newest first.
-  const current = list.find((item) => !closed.has(item.id)) ?? null
+  // The list is newest first. The server keeps at most one chat open per issue.
+  const current = list.find((item) => item.closed_at === null) ?? null
   const conversation = wantsNew
     ? null
     : (list.find((item) => item.id === requestedId) ?? current)
@@ -54,8 +52,7 @@ export function useConversation(caseId: number) {
     /** True on `?session=new`: a blank chat not yet created on the server. */
     isNewChat: wantsNew,
     isCurrent: wantsNew || conversation === current,
-    isClosed: conversationId !== null && closed.has(conversationId),
-    closed,
+    isClosed: conversation !== null && conversation.closed_at !== null,
     messages: messages.data ?? [],
     isLoading: conversations.isLoading || messages.isLoading,
     isError: conversations.isError || messages.isError,

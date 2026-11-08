@@ -33,8 +33,9 @@ class CaseSerializer(serializers.ModelSerializer):
 class TimelineEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = TimelineEntry
-        fields = ["id", "occurred_at", "title", "description", "source", "document", "created_at"]
-        read_only_fields = ["id", "source", "created_at"]
+        fields = ["id", "occurred_at", "title", "description", "source", "document", "conversation", "created_at"]
+        # The chat link is set by the server when a chat's first message is saved.
+        read_only_fields = ["id", "source", "conversation", "created_at"]
 
     def validate_document(self, doc):
         if doc and doc.case_id != self.context["case"].pk:

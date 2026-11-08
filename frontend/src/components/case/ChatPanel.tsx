@@ -1,7 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
-import { closeSession } from '../../api/closedSessions.ts'
+import { closeConversation } from '../../api/chat.ts'
 import type { ChatMessage } from '../../api/types.ts'
 import { OwlMark } from '../brand/Owl.tsx'
 import ActionMenu from '../ActionMenu.tsx'
@@ -10,7 +11,7 @@ import Icon from '../Icon.tsx'
 import { sendChatMessage, usePendingSend, type PendingSend } from './chatSending.ts'
 import CrisisBanner from './CrisisBanner.tsx'
 import Markdown from './Markdown.tsx'
-import { NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
+import { conversationsQuery, NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
 import { useDictation } from './useDictation.ts'
 import { warmDictation } from '../../api/dictation.ts'
 
@@ -78,6 +79,7 @@ function Message({ message }: { message: ChatMessage }) {
 function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const {
     conversationId,
     conversation,
@@ -231,7 +233,8 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
 
   async function confirmClose() {
     if (conversationId === null) return
-    closeSession(conversationId)
+    await closeConversation(caseId, conversationId)
+    await queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true })
     // Stay on this chat so the person sees it's now closed.
     navigate({ search: `?${SESSION_PARAM}=${conversationId}` }, { replace: true })
   }
@@ -250,7 +253,10 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   }
 
   async function confirmNewChat() {
-    if (current) closeSession(current.id)
+    if (current) {
+      await closeConversation(caseId, current.id)
+      await queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true })
+    }
     openBlankChat()
   }
 
@@ -441,7 +447,7 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
         <form className="composer-area" onSubmit={handleSubmit}>
           {sendFailed && (
             <p className="form-error" role="alert">
-              {t('chat.sendFailed')}
+              {pending?.failure === 'closed' ? t('chat.closedElsewhere') : t('chat.sendFailed')}
             </p>
           )}
           {dictation.error && (
