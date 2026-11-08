@@ -15,6 +15,23 @@
     "language": "Language",
     "disclaimer": "Boardwise gives general information about workplace rights in Alberta. It is not legal advice. For advice about your situation, talk to a lawyer."
   },
+  "menu": {
+    "settings": "Settings",
+    "account": "Account menu, {{name}}",
+    "signedInAs": "Signed in as"
+  },
+  "display": {
+    "title": "Display settings",
+    "theme": "Theme",
+    "themeSystem": "Match my device",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "motion": "Motion",
+    "reduceMotion": "Reduce motion",
+    "reduceMotionHint": "Turns off animations and moving effects.",
+    "reduceMotionDevice": "Your device already asks for less motion, so animations are off.",
+    "done": "Done"
+  },
   "nav": {
     "issues": "My issues",
     "lawyers": "Find a lawyer",

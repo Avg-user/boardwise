@@ -15,6 +15,23 @@
     "language": "Langue",
     "disclaimer": "Boardwise fournit des renseignements généraux sur les droits au travail en Alberta. Il ne s'agit pas d'un avis juridique. Pour obtenir des conseils sur votre situation, adressez-vous à un avocat."
   },
+  "menu": {
+    "settings": "Paramètres",
+    "account": "Menu du compte, {{name}}",
+    "signedInAs": "Connecté en tant que"
+  },
+  "display": {
+    "title": "Paramètres d'affichage",
+    "theme": "Thème",
+    "themeSystem": "Comme mon appareil",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "motion": "Mouvement",
+    "reduceMotion": "Réduire les animations",
+    "reduceMotionHint": "Désactive les animations et les effets de mouvement.",
+    "reduceMotionDevice": "Votre appareil demande déjà moins de mouvement, donc les animations sont désactivées.",
+    "done": "Terminé"
+  },
   "nav": {
     "issues": "Mes dossiers",
     "lawyers": "Trouver un avocat",
