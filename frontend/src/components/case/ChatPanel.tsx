@@ -14,6 +14,7 @@ import Markdown from './Markdown.tsx'
 import { conversationsQuery, NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
 import { useDictation } from './useDictation.ts'
 import { warmDictation } from '../../api/dictation.ts'
+import { pauseSpeaking, resetSpeaking, speak, useLocalVoice, useReadingState } from './readAloud.ts'
 
 const DICTATION_ERRORS = {
   micDenied: 'chat.dictation.micDenied',
@@ -47,6 +48,48 @@ function AssistantLabel() {
   )
 }
 
+/** Reads one reply aloud. Hidden when the device has no voice of its own for the language. */
+function ListenButton({ message }: { message: ChatMessage }) {
+  const { t, i18n } = useTranslation()
+  const voice = useLocalVoice(i18n.resolvedLanguage)
+  const state = useReadingState(message.id)
+  if (!voice) return null
+  const labels = {
+    idle: ['chat.listen.start', 'chat.listen.startLabel'],
+    speaking: ['chat.listen.pause', 'chat.listen.pauseLabel'],
+    paused: ['chat.listen.resume', 'chat.listen.resumeLabel'],
+  } as const
+  const [text, label] = labels[state]
+  return (
+    <button
+      type="button"
+      className="button-quiet listen-button"
+      aria-label={t(label)}
+      onClick={() => (state === 'speaking' ? pauseSpeaking() : speak(message.id, message.content, voice))}
+    >
+      {state === 'speaking' ? <PauseIcon /> : <SpeakerIcon />}
+      {t(text)}
+    </button>
+  )
+}
+
+function SpeakerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />
+      <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor" />
+    </svg>
+  )
+}
+
 function Message({ message }: { message: ChatMessage }) {
   const { t } = useTranslation()
 
@@ -72,6 +115,7 @@ function Message({ message }: { message: ChatMessage }) {
           </ul>
         </div>
       )}
+      <ListenButton message={message} />
     </div>
   )
 }
@@ -134,6 +178,8 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
       setDraft((current) => appendText(current, partial))
     },
   })
+  // Stop reading aloud when leaving this chat or switching to another session.
+  useEffect(() => () => resetSpeaking(), [conversationId])
   // Load the speech model while the chat is open, so Speak starts at once.
   useEffect(() => {
     if (dictation.available) warmDictation()
@@ -513,6 +559,7 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                     void dictation.stop()
                   } else {
                     provisionalRef.current = null
+                    pauseSpeaking() // or the mic would type out the reply being read
                     void dictation.start()
                   }
                 }}

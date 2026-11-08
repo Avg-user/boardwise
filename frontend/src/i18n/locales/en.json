@@ -230,6 +230,14 @@
       "call911": "Call 911",
       "call988": "Crisis line 988"
     },
+    "listen": {
+      "start": "Listen",
+      "pause": "Pause",
+      "resume": "Resume",
+      "startLabel": "Read this reply aloud",
+      "pauseLabel": "Pause reading aloud",
+      "resumeLabel": "Resume reading aloud"
+    },
     "heading": "Conversation",
     "moreActions": "More chat actions",
     "starters": {
