@@ -219,6 +219,14 @@
       "danger": "En danger?",
       "call911": "Appelez le 911",
       "call988": "Ligne de crise 988"
+    },
+    "listen": {
+      "start": "Écouter",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "startLabel": "Lire cette réponse à voix haute",
+      "pauseLabel": "Mettre la lecture en pause",
+      "resumeLabel": "Reprendre la lecture"
     }
   },
   "transcript": {
