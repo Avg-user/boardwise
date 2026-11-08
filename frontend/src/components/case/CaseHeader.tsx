@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { useTranslation } from 'react-i18next'
 import { MAX_CASE_TITLE_LENGTH, updateCase } from '../../api/cases.ts'
 import type { Case, CaseStatus } from '../../api/types.ts'
+import ActionMenu from '../ActionMenu.tsx'
 
 type Changes = { title?: string; status?: CaseStatus }
 
@@ -24,7 +25,7 @@ function CaseHeader({ caseItem }: { caseItem: Case }) {
     },
   })
 
-  // Put focus back on the Rename button after the form closes, so keyboard users don't lose their place.
+  // Put focus back on the actions button after the form closes, so keyboard users don't lose their place.
   useEffect(() => {
     if (!isRenaming && returnFocus.current) {
       returnFocus.current = false
@@ -115,29 +116,25 @@ function CaseHeader({ caseItem }: { caseItem: Case }) {
 
   return (
     <div className="case-header">
-      <h1>
-        {caseItem.title}
-        {caseItem.status === 'closed' && (
-          <>
-            {' '}
-            <span className="status-badge">{t('case.closedBadge')}</span>
-          </>
-        )}
-      </h1>
+      <div className="case-header__title">
+        <h1>{caseItem.title}</h1>
+        <span className={`status-pill status-pill--${caseItem.status}`}>
+          {caseItem.status === 'closed' ? t('case.closedBadge') : t('case.openBadge')}
+        </span>
+      </div>
       {caseItem.is_owner && (
-        <div className="case-header__actions">
-          <button ref={renameButtonRef} type="button" className="button-quiet" onClick={startRename}>
-            {t('case.rename')}
-          </button>
-          <button
-            type="button"
-            className="button-quiet"
-            disabled={update.isPending}
-            onClick={toggleStatus}
-          >
-            {caseItem.status === 'open' ? t('case.closeIssue') : t('case.reopenIssue')}
-          </button>
-        </div>
+        <ActionMenu
+          label={t('case.moreActions')}
+          triggerRef={renameButtonRef}
+          items={[
+            { label: t('case.rename'), onSelect: startRename },
+            {
+              label: caseItem.status === 'open' ? t('case.closeIssue') : t('case.reopenIssue'),
+              onSelect: () => void toggleStatus(),
+              disabled: update.isPending,
+            },
+          ]}
+        />
       )}
       <p className="visually-hidden" role="status">
         {announcement}

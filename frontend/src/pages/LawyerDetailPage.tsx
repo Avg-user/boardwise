@@ -5,6 +5,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { listCases } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
 import { getFirm, listCaseMatches, requestMatch } from '../api/lawfirms.ts'
+import Icon from '../components/Icon.tsx'
 import { feeLines } from '../components/lawfirms/format.ts'
 import NotFoundPage from './NotFoundPage.tsx'
 
@@ -69,6 +70,7 @@ function LawyerDetailPage() {
       <title>{`${firm.name} · ${t('app.name')}`}</title>
       {/* Back to the directory with the filters it had, when we came from there. */}
       <Link className="back-link" to={{ pathname: '/lawyers', search: backSearch }}>
+        <Icon name="chevronLeft" />
         {t('lawyers.back')}
       </Link>
       <p className="eyebrow">{t('lawyers.verifiedFirm')}</p>

@@ -152,6 +152,7 @@ function OfferDetail({ id, onDeleted }: { id: number; onDeleted: () => void }) {
   }
   if (!offer) return <p role="status">{t('common.loading')}</p>
 
+  const notes = offer.summary.split(/\n\s*\n/).filter(Boolean)
   // Retrying can't fix the file itself; uploading it as text can.
   const fileProblem = offer.failure === 'no_text' || offer.failure === 'unreadable'
   const counts = (['violation', 'concern', 'info'] as const)
@@ -202,14 +203,8 @@ function OfferDetail({ id, onDeleted }: { id: number; onDeleted: () => void }) {
               })}
             </p>
           )}
-          {offer.summary
-            .split(/\n\s*\n/)
-            .filter(Boolean)
-            .map((paragraph, index) => (
-              <p key={index} className="offer-detail__summary">
-                {paragraph}
-              </p>
-            ))}
+          {/* One part: its summary leads. Several parts: findings first, the notes per part folded away. */}
+          {notes.length === 1 && <p className="offer-detail__summary">{notes[0]}</p>}
           {counts.length > 0 && (
             <p className="chips" aria-label={t('jobOffers.countsLabel')}>
               {counts.map(({ severity, n }) => (
@@ -227,6 +222,16 @@ function OfferDetail({ id, onDeleted }: { id: number; onDeleted: () => void }) {
             </ul>
           ) : (
             <p>{t('jobOffers.noFindings')}</p>
+          )}
+          {notes.length > 1 && (
+            <details className="offer-detail__text">
+              <summary>{t('jobOffers.partNotes', { count: notes.length })}</summary>
+              {notes.map((paragraph, index) => (
+                <p key={index} className="offer-detail__summary">
+                  {paragraph}
+                </p>
+              ))}
+            </details>
           )}
           <p className="field-hint">{t('jobOffers.disclaimer')}</p>
         </>

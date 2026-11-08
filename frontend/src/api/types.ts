@@ -23,6 +23,12 @@ export type Case = {
   is_owner: boolean
   created_at: string
   updated_at: string
+  /** Progress, only in the list response (null elsewhere). */
+  timeline_count?: number | null
+  tasks_total?: number | null
+  tasks_done?: number | null
+  /** How many people the owner shares this with; null for anyone but the owner. */
+  shared_count?: number | null
 }
 
 export type TimelineSource = 'manual' | 'ai' | 'document'

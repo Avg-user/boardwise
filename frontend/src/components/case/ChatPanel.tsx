@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { closeSession } from '../../api/closedSessions.ts'
 import type { ChatMessage } from '../../api/types.ts'
 import { OwlMark } from '../brand/Owl.tsx'
+import ActionMenu from '../ActionMenu.tsx'
 import ConfirmDialog from '../ConfirmDialog.tsx'
+import Icon from '../Icon.tsx'
 import { sendChatMessage, usePendingSend, type PendingSend } from './chatSending.ts'
 import CrisisBanner from './CrisisBanner.tsx'
 import Markdown from './Markdown.tsx'
@@ -310,45 +312,57 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
     }
   }
 
+  const menuItems = [
+    ...(canExport
+      ? [{ label: isExporting ? t('transcript.preparing') : t('transcript.download'), onSelect: () => void exportTranscript(), disabled: isExporting }]
+      : []),
+    { label: t('chat.closeChat'), onSelect: () => setIsConfirmingClose(true), disabled: isCaseBusy, danger: true },
+  ]
+
+  function applyStarter(text: string) {
+    setDraft(text)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
   return (
     <div className="chat">
+      <div className="chat-card">
+      <div className="chat-card__head">
+        <div className="chat-card__heading">
+          <h2>{t('chat.heading')}</h2>
+          {conversation && messages.length > 0 && <span className="chat-card__date">{sessionDate}</span>}
+        </div>
+        {canEdit && conversationId !== null && !isClosed && (
+          <div className="chat-card__actions">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                className="button button--secondary button--small"
+                disabled={isCaseBusy}
+                onClick={requestNewChat}
+              >
+                <Icon name="plus" />
+                {t('chat.newChatShort')}
+              </button>
+            )}
+            <ActionMenu label={t('chat.moreActions')} items={menuItems} />
+            <ConfirmDialog
+              open={isConfirmingClose}
+              onClose={() => setIsConfirmingClose(false)}
+              title={t('chat.closeTitle')}
+              message={t('chat.closeMessage')}
+              confirmLabel={t('chat.closeChat')}
+              pendingLabel={t('chat.closeChat')}
+              onConfirm={confirmClose}
+            />
+          </div>
+        )}
+      </div>
       {!isCurrent && (
         <p className="session-notice">
           {t('chat.earlierSession', { date: sessionDate })}{' '}
           <Link to={{ search: '' }}>{t('chat.latestSession')}</Link>
         </p>
-      )}
-      {canEdit && conversationId !== null && !isClosed && (
-        <div className="chat__toolbar">
-          {messages.length > 0 && (
-            <button
-              type="button"
-              className="button-quiet"
-              disabled={isCaseBusy}
-              onClick={requestNewChat}
-            >
-              {t('chat.newChatShort')}
-            </button>
-          )}
-          {exportButton}
-          <button
-            type="button"
-            className="button-quiet"
-            disabled={isCaseBusy}
-            onClick={() => setIsConfirmingClose(true)}
-          >
-            {t('chat.closeChat')}
-          </button>
-          <ConfirmDialog
-            open={isConfirmingClose}
-            onClose={() => setIsConfirmingClose(false)}
-            title={t('chat.closeTitle')}
-            message={t('chat.closeMessage')}
-            confirmLabel={t('chat.closeChat')}
-            pendingLabel={t('chat.closeChat')}
-            onConfirm={confirmClose}
-          />
-        </div>
       )}
       {!isClosed && exportError}
       {canEdit && current && (
@@ -372,9 +386,23 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
           </p>
         )}
         {!isLoading && !isError && messages.length === 0 && !isSendingHere && (
-          <div className="message message--assistant">
+          <div className="message message--assistant chat__intro">
             <AssistantLabel />
             <p>{t('chat.intro')}</p>
+            {canEdit && !isClosed && (
+              <div className="starters" role="group" aria-label={t('chat.starters.label')}>
+                {(['what', 'rights', 'record'] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className="starter"
+                    onClick={() => applyStarter(t(`chat.starters.${key}`))}
+                  >
+                    {t(`chat.starters.${key}`)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {messages.map((message) => (
@@ -483,15 +511,20 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                   }
                 }}
               >
-                {isDictating ? t('chat.dictation.stop') : t('chat.dictation.start')}
+                <Icon name={isDictating ? 'stop' : 'mic'} />
+                <span className="composer__mic-label">
+                  {isDictating ? t('chat.dictation.stop') : t('chat.dictation.start')}
+                </span>
               </button>
             )}
             <button
-              className="button"
+              className="button composer__send"
               type="submit"
+              aria-label={t('chat.send')}
+              title={t('chat.send')}
               disabled={isCaseBusy || (!draft.trim() && !isDictating)}
             >
-              {t('chat.send')}
+              <Icon name="arrowUp" />
             </button>
           </div>
           <p className="visually-hidden" role="status">
@@ -503,8 +536,9 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
           </p>
         </form>
       ) : (
-        <p className="chat__notice">{t('case.readOnly')}</p>
+        <p className="chat__notice chat__readonly">{t('case.readOnly')}</p>
       )}
+      </div>
 
       {/* Always at the bottom for the person writing. The crisis part steps aside while the
           full crisis banner is open, so the same numbers aren't shown twice. */}

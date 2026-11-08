@@ -82,7 +82,7 @@
     "title": "My issues",
     "description": "Keep track of each workplace issue in one private place.",
     "empty": "You don't have any issues yet.",
-    "updated": "Updated {{date}}",
+    "updated": "Updated",
     "closed": "Closed",
     "newIssue": "New issue",
     "emptyCta": "Start your first issue",
@@ -110,6 +110,13 @@
       "hello": "Hi, {{name}}.",
       "helloNoName": "Hi there.",
       "text": " Pick up where you left off, or start a new issue. I'm here when you need me."
+    },
+    "meta": {
+      "entries_one": "{{count}} timeline entry",
+      "entries_other": "{{count}} timeline entries",
+      "steps": "{{done}} of {{total}} steps done",
+      "shared_one": "Shared with {{count}} partner",
+      "shared_other": "Shared with {{count}} partners"
     }
   },
   "timeline": {
@@ -180,7 +187,9 @@
       "timeline": "Timeline",
       "steps": "Next steps"
     },
-    "backPartner": "Back to dashboard"
+    "backPartner": "Back to dashboard",
+    "openBadge": "Open",
+    "moreActions": "More actions for this issue"
   },
   "chat": {
     "aiLabel": "AI assistant",
@@ -220,6 +229,14 @@
       "danger": "In danger?",
       "call911": "Call 911",
       "call988": "Crisis line 988"
+    },
+    "heading": "Conversation",
+    "moreActions": "More chat actions",
+    "starters": {
+      "label": "Ways to start",
+      "what": "Help me describe what happened",
+      "rights": "What are my rights at work?",
+      "record": "What should I write down and keep?"
     }
   },
   "transcript": {
@@ -292,7 +309,10 @@
       "title": "Firm dashboard",
       "description": "Cases workers have shared with you, and how your firm appears to people looking for help.",
       "statsTitle": "Case statistics",
-      "statsText": "Show the kinds of cases your firm handles."
+      "statsText": "Show the kinds of cases your firm handles.",
+      "pending": "Requests waiting",
+      "shared": "Cases shared with you",
+      "accepted": "Accepted requests"
     }
   },
   "lawyers": {
@@ -367,7 +387,8 @@
       "ar": "Arabic",
       "hi": "Hindi",
       "other": "Other"
-    }
+    },
+    "view": "View firm"
   },
   "matches": {
     "title": "Lawyers",
@@ -542,7 +563,9 @@
       "failed": "Failed"
     },
     "partial_one": "This offer was checked in {{total}} parts, and the AI didn't answer for part {{parts}}. Findings from that part are missing. Try again to check it.",
-    "partial_other": "This offer was checked in {{total}} parts, and the AI didn't answer for parts {{parts}}. Findings from those parts are missing. Try again to check them."
+    "partial_other": "This offer was checked in {{total}} parts, and the AI didn't answer for parts {{parts}}. Findings from those parts are missing. Try again to check them.",
+    "partNotes_one": "Notes from the AI ({{count}} part)",
+    "partNotes_other": "Notes from the AI ({{count}} parts)"
   },
   "workplace": {
     "eyebrow": "Your workplace",
