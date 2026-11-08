@@ -1,13 +1,66 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { LANGUAGES, listFirms, PRACTICE_AREAS, type FirmFilters } from '../api/lawfirms.ts'
 import { feeLines } from '../components/lawfirms/format.ts'
 
+/** How long typing has to pause before the search runs. */
+const SEARCH_DELAY_MS = 300
+
 function LawyersPage() {
   const { t, i18n } = useTranslation()
-  const [filters, setFilters] = useState<FirmFilters>({})
+  // Filters live in the address, so going back from a firm, reloading or sharing keeps them.
+  const [params, setParams] = useSearchParams()
+  const filters: FirmFilters = {
+    q: params.get('q') ?? '',
+    area: params.get('area') ?? '',
+    language: params.get('language') ?? '',
+    freeConsultation: params.get('free') === '1',
+  }
+
+  function updateFilters(changes: Record<string, string | null>) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        for (const [key, value] of Object.entries(changes)) {
+          if (value) next.set(key, value)
+          else next.delete(key)
+        }
+        return next
+      },
+      // Each change replaces the entry, so Back leaves the directory instead of undoing filters.
+      { replace: true },
+    )
+  }
+
+  // The box updates as you type; the search waits for a short pause.
+  const [query, setQuery] = useState(filters.q ?? '')
+  const [syncedQuery, setSyncedQuery] = useState(filters.q)
+  if (filters.q !== syncedQuery) {
+    // The address changed some other way (Back, a link to /lawyers): show what it says.
+    setSyncedQuery(filters.q)
+    if (query.trim() !== filters.q) setQuery(filters.q ?? '')
+  }
+  const searchTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(searchTimer.current), [])
+
+  function handleQueryChange(value: string) {
+    setQuery(value)
+    window.clearTimeout(searchTimer.current)
+    searchTimer.current = window.setTimeout(
+      () => updateFilters({ q: value.trim() || null }),
+      SEARCH_DELAY_MS,
+    )
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    // Enter searches straight away.
+    window.clearTimeout(searchTimer.current)
+    updateFilters({ q: query.trim() || null })
+  }
+
   const { data: firms, isLoading, isError } = useQuery({
     queryKey: ['lawfirms', filters],
     queryFn: () => listFirms(filters),
@@ -22,14 +75,14 @@ function LawyersPage() {
       <h1>{title}</h1>
       <p className="page-description">{t('lawyers.description')}</p>
 
-      <form className="filters" role="search" onSubmit={(event) => event.preventDefault()}>
-        <div className="field">
+      <form className="filters" role="search" onSubmit={handleSubmit}>
+        <div className="field filters__search">
           <label htmlFor="firm-search">{t('lawyers.filters.search')}</label>
           <input
             id="firm-search"
             type="search"
-            value={filters.q ?? ''}
-            onChange={(event) => setFilters({ ...filters, q: event.target.value })}
+            value={query}
+            onChange={(event) => handleQueryChange(event.target.value)}
           />
         </div>
         <div className="field">
@@ -37,7 +90,7 @@ function LawyersPage() {
           <select
             id="firm-area"
             value={filters.area ?? ''}
-            onChange={(event) => setFilters({ ...filters, area: event.target.value })}
+            onChange={(event) => updateFilters({ area: event.target.value || null })}
           >
             <option value="">{t('lawyers.filters.any')}</option>
             {PRACTICE_AREAS.map((area) => (
@@ -52,7 +105,7 @@ function LawyersPage() {
           <select
             id="firm-language"
             value={filters.language ?? ''}
-            onChange={(event) => setFilters({ ...filters, language: event.target.value })}
+            onChange={(event) => updateFilters({ language: event.target.value || null })}
           >
             <option value="">{t('lawyers.filters.any')}</option>
             {LANGUAGES.map((code) => (
@@ -66,7 +119,7 @@ function LawyersPage() {
           <input
             type="checkbox"
             checked={filters.freeConsultation ?? false}
-            onChange={(event) => setFilters({ ...filters, freeConsultation: event.target.checked })}
+            onChange={(event) => updateFilters({ free: event.target.checked ? '1' : null })}
           />
           <span className="choice__label">{t('lawyers.filters.free')}</span>
         </label>
@@ -83,7 +136,11 @@ function LawyersPage() {
         <ul className="firm-grid" aria-live="polite">
           {firms.map((firm) => (
             <li key={firm.id}>
-              <Link className="firm-card" to={`/lawyers/${firm.id}`}>
+              <Link
+                className="firm-card"
+                to={`/lawyers/${firm.id}`}
+                state={{ directorySearch: params.toString() ? `?${params}` : '' }}
+              >
                 <span className="firm-card__head">
                   <span className="firm-card__name">{firm.name}</span>
                   <span className="tag">{t('lawyers.verified')}</span>

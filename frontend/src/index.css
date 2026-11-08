@@ -1800,9 +1800,11 @@ p.message--user {
   margin-top: 2rem;
 }
 
+/* As many columns as fit, never narrower than 16rem: one on phones, two on tablets, three on
+   desktop. auto-fill keeps a lone tile at card width instead of stretching across the page. */
 .feature-tiles {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
   gap: 1rem;
   margin: 0;
   padding: 0;
@@ -1829,6 +1831,27 @@ p.message--user {
 
 .feature-tile .tag {
   justify-self: start;
+}
+
+/* Long words (French especially) wrap instead of spilling out of the card. */
+.feature-tile h3,
+.feature-tile p {
+  overflow-wrap: anywhere;
+}
+
+/* Phones: full-width tiles get tall, so the icon moves beside the title. */
+@media (max-width: 35.99rem) {
+  .feature-tile {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .feature-tile p,
+  .feature-tile .tag {
+    grid-column: 1 / -1;
+  }
 }
 
 .tag--muted {
@@ -1860,11 +1883,12 @@ p.message--user {
 }
 
 /* Lawyer directory */
+/* Phones: one filter per row, full width. */
 .filters {
   display: grid;
-  grid-template-columns: 2fr 1.5fr 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
-  gap: 1rem;
+  gap: 0.75rem 1rem;
   max-width: 64rem;
   margin-bottom: 1.5rem;
 }
@@ -1874,9 +1898,32 @@ p.message--user {
   align-items: center;
 }
 
+/* Tablets: search across the top, the other filters in a row under it. */
+@media (min-width: 36rem) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .filters__search {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Wide screens: everything on one line. */
+@media (min-width: 56rem) {
+  .filters {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr) auto;
+    gap: 1rem;
+  }
+
+  .filters__search {
+    grid-column: auto;
+  }
+}
+
 .firm-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
   gap: 1rem;
   margin: 0;
   padding: 0;
