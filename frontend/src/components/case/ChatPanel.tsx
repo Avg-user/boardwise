@@ -1,14 +1,17 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import { createConversation, sendMessage } from '../../api/chat.ts'
+import { Link, useNavigate } from 'react-router-dom'
+import { closeSession } from '../../api/closedSessions.ts'
 import type { ChatMessage } from '../../api/types.ts'
+import ConfirmDialog from '../ConfirmDialog.tsx'
+import { sendChatMessage, usePendingSend, type PendingSend } from './chatSending.ts'
 import CrisisBanner from './CrisisBanner.tsx'
-import { conversationsQuery, messagesQuery, useConversation } from './useConversation.ts'
+import { NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
 
 type ChatPanelProps = {
   caseId: number
+  /** Printed at the top of an exported transcript. */
+  caseTitle: string
   canEdit: boolean
 }
 
@@ -46,33 +49,64 @@ function Message({ message }: { message: ChatMessage }) {
   )
 }
 
-function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
+function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   const { t, i18n } = useTranslation()
-  const queryClient = useQueryClient()
-  const { conversationId, conversation, isLatest, messages, isLoading, isError } =
-    useConversation(caseId)
-  const sessionDate = conversation
-    ? new Intl.DateTimeFormat(i18n.resolvedLanguage, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(new Date(conversation.created_at))
-    : ''
+  const navigate = useNavigate()
+  const {
+    conversationId,
+    conversation,
+    current,
+    isNewChat,
+    isCurrent,
+    isClosed,
+    messages,
+    isLoading,
+    isError,
+  } = useConversation(caseId)
+  const pending = usePendingSend(caseId)
+  const [isConfirmingClose, setIsConfirmingClose] = useState(false)
+  const [isConfirmingNew, setIsConfirmingNew] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportFailed, setExportFailed] = useState(false)
+  const dateTimeFormat = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+  const sessionDate = conversation ? dateTimeFormat.format(new Date(conversation.created_at)) : ''
+  const canExport = canEdit && conversation !== null && messages.length > 0
   const [draft, setDraft] = useState('')
-  const [pendingText, setPendingText] = useState<string | null>(null)
-  const [streamedText, setStreamedText] = useState('')
-  const [sendFailed, setSendFailed] = useState(false)
+  const [restoredFailure, setRestoredFailure] = useState<PendingSend | null>(null)
   const [dismissedCrisisId, setDismissedCrisisId] = useState<number | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const crisisRef = useRef<HTMLDivElement>(null)
 
-  const isSending = pendingText !== null
+  // A send keeps going if the person leaves; coming back shows it again.
+  const isCaseBusy = pending?.status === 'sending'
+  // Shown only in the chat it belongs to. A first message from a blank chat stays visible
+  // there while the new chat is created and listed.
+  const isSendingHere =
+    isCaseBusy &&
+    (pending.conversationId === conversationId || (pending.startedBlank && conversationId === null))
+  const pendingText = isSendingHere ? pending.content : null
+  const streamedText = isSendingHere ? pending.streamed : ''
   const latestCrisisId = messages.findLast((message) => message.flagged_crisis)?.id ?? null
   const showCrisisBanner =
     canEdit && latestCrisisId !== null && latestCrisisId !== dismissedCrisisId
 
-  // Stop a reply that's still streaming when leaving the screen.
-  useEffect(() => () => abortRef.current?.abort(), [])
+  // A send that failed, even while the person was elsewhere, stays recorded until the next
+  // send. Put its text back in the box once, so they can retry.
+  const sendFailed = pending?.status === 'failed'
+  if (sendFailed && pending !== restoredFailure) {
+    setRestoredFailure(pending)
+    setDraft(pending.content)
+  }
+
+  // Once a new chat exists on the server, point the URL at it, so a retry stays in it.
+  useEffect(() => {
+    if (isNewChat && pending?.conversationId != null) {
+      navigate({ search: `?${SESSION_PARAM}=${pending.conversationId}` }, { replace: true })
+    }
+  }, [isNewChat, pending?.conversationId, navigate])
 
   // Follow new content, unless the person has scrolled up to read earlier messages.
   useEffect(() => {
@@ -89,43 +123,93 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
     }
   }, [showCrisisBanner, latestCrisisId])
 
-  async function send() {
+  function send() {
     const content = draft.trim()
-    if (!content || isSending) {
+    if (!content || isCaseBusy) {
       return
     }
-    const controller = new AbortController()
-    abortRef.current = controller
     setDraft('')
-    setSendFailed(false)
-    setStreamedText('')
-    setPendingText(content)
-    try {
-      const id = conversationId ?? (await createConversation(caseId)).id
-      await sendMessage({
-        caseId,
-        conversationId: id,
-        content,
-        language: i18n.resolvedLanguage ?? 'en',
-        onDelta: (piece) => setStreamedText((current) => current + piece),
-        signal: controller.signal,
-      })
-      // Load the messages first, so they don't flicker out when pending text clears.
-      await queryClient.fetchQuery(messagesQuery(caseId, id))
-      await queryClient.invalidateQueries({
-        queryKey: conversationsQuery(caseId).queryKey,
-        exact: true,
-      })
-    } catch {
-      if (controller.signal.aborted) {
-        return
-      }
-      setDraft(content)
-      setSendFailed(true)
-    }
-    setPendingText(null)
-    setStreamedText('')
+    // Starting a new send replaces any failed one, which clears the error.
+    void sendChatMessage({
+      caseId,
+      conversationId,
+      content,
+      language: i18n.resolvedLanguage ?? 'en',
+      entryTitle: t('timeline.chatEntryTitle', {
+        date: new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: 'medium' }).format(new Date()),
+      }),
+    })
   }
+
+  async function confirmClose() {
+    if (conversationId === null) return
+    closeSession(conversationId)
+    // Stay on this chat so the person sees it's now closed.
+    navigate({ search: `?${SESSION_PARAM}=${conversationId}` }, { replace: true })
+  }
+
+  function openBlankChat() {
+    navigate({ search: `?${SESSION_PARAM}=${NEW_SESSION}` })
+  }
+
+  /** Only one chat stays open per issue, so starting another closes the open one, after asking. */
+  function requestNewChat() {
+    if (current) {
+      setIsConfirmingNew(true)
+    } else {
+      openBlankChat()
+    }
+  }
+
+  async function confirmNewChat() {
+    if (current) closeSession(current.id)
+    openBlankChat()
+  }
+
+  async function exportTranscript() {
+    if (!conversation) return
+    setIsExporting(true)
+    setExportFailed(false)
+    try {
+      const { downloadTranscript } = await import('../../export/transcriptPdf.ts')
+      // A generic file name: the issue title could be sensitive in a downloads list.
+      const day = conversation.created_at.slice(0, 10)
+      await downloadTranscript(
+        {
+          caseTitle,
+          startedAt: conversation.created_at,
+          messages,
+          formatDateTime: (iso) => dateTimeFormat.format(new Date(iso)),
+          labels: {
+            heading: t('transcript.heading'),
+            issue: t('transcript.issue'),
+            started: t('transcript.started'),
+            exported: t('transcript.exported'),
+            notice: t('transcript.notice'),
+            you: t('transcript.you'),
+            assistant: t('chat.aiLabel'),
+            sources: t('chat.sources'),
+            page: (page, total) => t('transcript.page', { page, total }),
+          },
+        },
+        `boardwise-chat-${day}.pdf`,
+      )
+    } catch {
+      setExportFailed(true)
+    }
+    setIsExporting(false)
+  }
+
+  const exportButton = canExport && (
+    <button type="button" className="button-quiet" disabled={isExporting} onClick={exportTranscript}>
+      {isExporting ? t('transcript.preparing') : t('transcript.download')}
+    </button>
+  )
+  const exportError = exportFailed && (
+    <p className="form-error" role="alert">
+      {t('transcript.failed')}
+    </p>
+  )
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -142,20 +226,66 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
 
   return (
     <div className="chat">
-      {!isLatest && (
+      {!isCurrent && (
         <p className="session-notice">
           {t('chat.earlierSession', { date: sessionDate })}{' '}
           <Link to={{ search: '' }}>{t('chat.latestSession')}</Link>
         </p>
       )}
-      <div className="chat__log" role="log" aria-busy={isSending} aria-label={t('chat.logLabel')}>
+      {canEdit && conversationId !== null && !isClosed && (
+        <div className="chat__toolbar">
+          {messages.length > 0 && (
+            <button
+              type="button"
+              className="button-quiet"
+              disabled={isCaseBusy}
+              onClick={requestNewChat}
+            >
+              {t('chat.newChatShort')}
+            </button>
+          )}
+          {exportButton}
+          <button
+            type="button"
+            className="button-quiet"
+            disabled={isCaseBusy}
+            onClick={() => setIsConfirmingClose(true)}
+          >
+            {t('chat.closeChat')}
+          </button>
+          <ConfirmDialog
+            open={isConfirmingClose}
+            onClose={() => setIsConfirmingClose(false)}
+            title={t('chat.closeTitle')}
+            message={t('chat.closeMessage')}
+            confirmLabel={t('chat.closeChat')}
+            pendingLabel={t('chat.closeChat')}
+            onConfirm={confirmClose}
+          />
+        </div>
+      )}
+      {!isClosed && exportError}
+      {canEdit && current && (
+        <ConfirmDialog
+          open={isConfirmingNew}
+          onClose={() => setIsConfirmingNew(false)}
+          title={t('chat.newChatTitle')}
+          message={t('chat.newChatMessage', {
+            date: dateTimeFormat.format(new Date(current.created_at)),
+          })}
+          confirmLabel={t('chat.newChatConfirm')}
+          pendingLabel={t('chat.newChatConfirm')}
+          onConfirm={confirmNewChat}
+        />
+      )}
+      <div className="chat__log" role="log" aria-busy={isSendingHere} aria-label={t('chat.logLabel')}>
         {isLoading && <p role="status">{t('common.loading')}</p>}
         {isError && (
           <p className="form-error" role="alert">
             {t('common.serverError')}
           </p>
         )}
-        {!isLoading && !isError && messages.length === 0 && !isSending && (
+        {!isLoading && !isError && messages.length === 0 && !isSendingHere && (
           <div className="message message--assistant">
             <AssistantLabel />
             <p>{t('chat.intro')}</p>
@@ -165,7 +295,7 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
           <Message key={message.id} message={message} />
         ))}
         {pendingText !== null && <p className="message message--user">{pendingText}</p>}
-        {isSending && (
+        {isSendingHere && (
           <div className="message message--assistant">
             <AssistantLabel />
             <p>{streamedText || t('chat.thinking')}</p>
@@ -181,7 +311,19 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
       )}
       <div ref={endRef} className="chat__end" />
 
-      {canEdit ? (
+      {canEdit && isClosed ? (
+        // Replaces the message box, as other chat apps do for ended conversations.
+        <div className="closed-bar">
+          <p>{t('chat.closedBar')}</p>
+          {exportError}
+          <div className="closed-bar__actions">
+            <button type="button" className="button" onClick={requestNewChat}>
+              {t('chat.newChat')}
+            </button>
+            {exportButton}
+          </div>
+        </div>
+      ) : canEdit ? (
         <form className="composer-area" onSubmit={handleSubmit}>
           {sendFailed && (
             <p className="form-error" role="alert">
@@ -200,7 +342,7 @@ function ChatPanel({ caseId, canEdit }: ChatPanelProps) {
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <button className="button" type="submit" disabled={isSending || !draft.trim()}>
+            <button className="button" type="submit" disabled={isCaseBusy || !draft.trim()}>
               {t('chat.send')}
             </button>
           </div>

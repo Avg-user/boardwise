@@ -73,11 +73,15 @@ function CasePage() {
 
       <div className="case-layout">
         <section className="case-pane" data-active={activeTab === 'chat'} aria-label={t('case.tabs.chat')}>
-          <ChatPanel caseId={caseId} canEdit={canEdit} />
+          <ChatPanel caseId={caseId} caseTitle={title} canEdit={canEdit} />
         </section>
         <div className="case-side">
           <section className="case-pane" data-active={activeTab === 'timeline'}>
-            <TimelinePanel caseId={caseId} onSessionSelect={() => setActiveTab('chat')} />
+            <TimelinePanel
+              caseId={caseId}
+              canEdit={canEdit}
+              onSessionSelect={() => setActiveTab('chat')}
+            />
           </section>
           <section className="case-pane" data-active={activeTab === 'steps'}>
             <NextStepsPanel caseId={caseId} canEdit={canEdit} />
