@@ -4,9 +4,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.cases.models import Case, CaseShare, TimelineEntry
 from apps.chat.models import Conversation, Message
+from apps.hr.dashboard import add_months
+from apps.hr.models import Company, HRMembership, IncidentReport, JobOffer, WorkerMembership
 from apps.lawfirms.models import LawFirmProfile, MatchRequest
 from apps.tasks.models import Task
 
@@ -46,6 +49,42 @@ DEMO_FIRMS = {
 }
 
 
+DEMO_COMPANY = "Northwind Logistics"
+# Anonymous reports for the demo company: (months ago, category, how many, ongoing).
+DEMO_REPORTS = [
+    (0, "harassment", 3, True), (0, "pay", 2, False), (1, "harassment", 4, True), (1, "safety", 3, False),
+    (2, "harassment", 4, False), (2, "discrimination", 2, False), (3, "pay", 3, False), (3, "safety", 3, False),
+    (4, "harassment", 5, True), (5, "sexual_harassment", 2, True), (5, "harassment", 3, False),
+    (6, "safety", 4, False), (7, "pay", 2, False), (7, "safety", 4, False), (8, "retaliation", 1, False), (8, "harassment", 5, False),
+    (9, "violence", 1, False), (10, "harassment", 6, False), (11, "pay", 2, False),
+]
+
+DEMO_OFFER = """Offer of Employment: Warehouse Associate
+Your wage will be $13.50 per hour. You will work 10-hour shifts, Monday to Saturday.
+Overtime is not paid. One 15-minute unpaid break per shift.
+Either party may end employment at any time without notice or pay."""
+
+DEMO_FINDINGS = [
+    {"severity": "violation", "title": "Wage below minimum wage", "offer_quote": "$13.50 per hour",
+     "explanation": "Alberta's minimum wage for employees 18 and over is $15/hour.",
+     "citation": "Employment Standards Code, s. 9; AB summary"},
+    {"severity": "violation", "title": "Overtime not paid", "offer_quote": "Overtime is not paid.",
+     "explanation": "Hours over 8 a day or 44 a week must be paid at 1.5 times the wage or banked as time off.",
+     "citation": "Employment Standards Code, ss. 21-22"},
+    {"severity": "violation", "title": "Breaks too short for a 10-hour shift",
+     "offer_quote": "One 15-minute unpaid break per shift.",
+     "explanation": "Shifts of 10 hours or more need at least two 30-minute breaks.",
+     "citation": "Employment Standards Code, s. 18"},
+    {"severity": "concern", "title": "Termination without notice",
+     "offer_quote": "Either party may end employment at any time without notice or pay.",
+     "explanation": "After 90 days, employers must give written notice or termination pay.",
+     "citation": "Employment Standards Code, ss. 56-57"},
+    {"severity": "info", "title": "Vacation not mentioned", "offer_quote": "",
+     "explanation": "Employees earn at least 2 weeks of vacation after a year of employment.",
+     "citation": "Employment Standards Code, s. 34"},
+]
+
+
 class Command(BaseCommand):
     help = "Create demo accounts (victim, hr, lawfirm) and a sample case. Safe to re-run."
 
@@ -59,6 +98,7 @@ class Command(BaseCommand):
         User = get_user_model()
         if reset:
             User.objects.filter(username__in=[u for u, _ in DEMO_USERS]).delete()
+            Company.objects.filter(name=DEMO_COMPANY).delete()  # reports and offers go with it
 
         users = {}
         for username, role in DEMO_USERS:
@@ -70,6 +110,8 @@ class Command(BaseCommand):
 
         for username, data in DEMO_FIRMS.items():
             LawFirmProfile.objects.get_or_create(user=users[username], defaults=data)
+
+        self._create_company(users["hr"], users["victim"])
 
         victim = users["victim"]
         if victim.cases.exists():
@@ -108,3 +150,26 @@ class Command(BaseCommand):
                            message="Comments from my team lead for months, then I was left out of meetings.")
         req.respond(MatchRequest.Status.ACCEPTED)
         req.save()
+
+    def _create_company(self, hr, victim):
+        """A verified company managed by "hr", with "victim" as an opted-in worker and sample data."""
+        company = HRMembership.objects.filter(user=hr).values_list("company", flat=True).first()
+        if company:
+            return
+        company = Company.objects.create(name=DEMO_COMPANY, province="AB", city="Calgary",
+                                         is_verified=True, verified_at=timezone.now())
+        HRMembership.objects.create(user=hr, company=company)
+        WorkerMembership.objects.update_or_create(user=victim,
+                                                  defaults={"company": company, "reporting_opt_in": True})
+        this_month = date.today().replace(day=1)
+        IncidentReport.objects.bulk_create(
+            IncidentReport(company=company, category=category, occurred_month=add_months(this_month, -ago),
+                           ongoing=ongoing)
+            for ago, category, n, ongoing in DEMO_REPORTS for _ in range(n)
+        )
+        # A reviewed sample so the job offer list isn't empty (no model call while seeding).
+        JobOffer.objects.create(
+            company=company, uploaded_by=hr, title="Warehouse associate (sample)", text=DEMO_OFFER,
+            province="AB", status=JobOffer.Status.DONE, findings=DEMO_FINDINGS, reviewed_at=timezone.now(),
+            summary="Sample review: several terms fall below Alberta's employment standards.",
+        )

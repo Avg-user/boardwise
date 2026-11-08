@@ -2994,3 +2994,511 @@ textarea,
   transition: none !important;
   scroll-behavior: auto !important;
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * HR dashboard: stat tiles and charts. One series per chart, so one hue (validated against both
+ * surfaces); text stays in text tokens. Hidden (too small) counts show as "<5", never a bar.
+ * ------------------------------------------------------------------------------------------- */
+.app-shell[data-theme='hr'] {
+  --chart-bar: #3451c7;
+}
+
+:root[data-color-scheme='dark'] .app-shell[data-theme='hr'] {
+  --chart-bar: #6f86f0;
+}
+
+.hr-dashboard {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.stat-tile {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.stat-tile dt {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.stat-tile dd {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.stat-tile--hero dd {
+  font-size: 3rem;
+  line-height: 1.1;
+}
+
+.chart-grid {
+  display: grid;
+  align-items: start;
+  gap: 1rem;
+}
+
+@media (min-width: 64rem) {
+  .chart-grid {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.chart {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 1rem 1.25rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.chart__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chart__subtitle {
+  margin: 0.125rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Columns: axis on the left, a 12rem plot, month labels underneath. */
+.column-chart {
+  --plot-height: 12rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5rem;
+}
+
+.column-chart__axis {
+  position: relative;
+  height: var(--plot-height);
+  min-width: 1.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.column-chart__axis span {
+  position: absolute;
+  right: 0;
+  transform: translateY(50%);
+}
+
+.column-chart__grid {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  grid-column: 2;
+  height: var(--plot-height);
+  pointer-events: none;
+}
+
+.column-chart__grid span {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.column-chart__plot {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.column-chart__slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  border-radius: 2px;
+  outline-offset: 2px;
+}
+
+.column-chart__track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: var(--plot-height);
+}
+
+.column-chart__bar {
+  width: min(100%, 24px);
+  border-radius: 4px 4px 0 0;
+  background: var(--chart-bar);
+}
+
+.column-chart__hidden {
+  padding-bottom: 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.column-chart__label {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Twelve labels don't fit on a phone: label every other month (the tooltip names each one). */
+@media (max-width: 40rem) {
+  .column-chart__slot:nth-child(even) .column-chart__label {
+    visibility: hidden;
+  }
+}
+
+/* A per-column tooltip on hover and keyboard focus; the slot's aria-label says the same. */
+.chart-tooltip {
+  position: absolute;
+  bottom: calc(100% - 2rem);
+  left: 50%;
+  z-index: 2;
+  display: none;
+  gap: 0.125rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  background: var(--color-elevated);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.column-chart__slot:hover .chart-tooltip,
+.column-chart__slot:focus-visible .chart-tooltip {
+  display: grid;
+}
+
+.column-chart__slot:hover .column-chart__track,
+.column-chart__slot:focus-visible .column-chart__track {
+  background: var(--color-grid);
+}
+
+/* Horizontal bars by category: label, then bar with its value at the tip. */
+.bar-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar-list__row {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.bar-list__label {
+  font-size: 0.875rem;
+}
+
+.bar-list__track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1rem;
+}
+
+.bar-list__bar {
+  height: 16px;
+  min-width: 4px;
+  max-width: calc(100% - 5rem);
+  border-radius: 0 4px 4px 0;
+  background: var(--chart-bar);
+}
+
+.bar-list__value {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chart-table summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.chart-table table {
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.chart-table th,
+.chart-table td {
+  padding: 0.25rem 1.5rem 0.25rem 0;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: start;
+  font-weight: normal;
+}
+
+.chart-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .column-chart__bar,
+  .bar-list__bar {
+    background: CanvasText;
+  }
+}
+
+/* Job offer check */
+.offers-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 64rem) {
+  .offers-layout {
+    grid-template-columns: minmax(18rem, 2fr) 3fr;
+    align-items: start;
+  }
+}
+
+.offers-layout__side {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.segmented label {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--color-control);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.segmented label:first-of-type {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.segmented label:last-of-type {
+  border-inline-start: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.segmented label:has(input:checked) {
+  background: var(--color-tint);
+  color: var(--color-tint-text);
+  font-weight: 600;
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.offer-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offer-list__item {
+  display: grid;
+  width: 100%;
+  gap: 0.125rem;
+  padding: 0.625rem 0.875rem;
+  border: 0;
+  border-inline-start: 3px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.offer-list__item:hover {
+  background: var(--color-surface);
+}
+
+.offer-list__item[aria-current='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.offer-list__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.offer-list__meta {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.offer-detail {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.offer-detail p {
+  margin: 0;
+}
+
+.offer-detail__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.offer-detail__header h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.offer-detail__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.offer-detail__text summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.offer-detail__text pre {
+  max-height: 24rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+
+.findings {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Severity is a label plus an edge, never color alone. */
+.finding {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  border-inline-start: 4px solid var(--color-control);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.finding--violation {
+  border-color: var(--color-crisis-text);
+}
+
+.finding--concern {
+  border-color: var(--color-tint-text);
+}
+
+.finding__severity {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.finding--violation .finding__severity {
+  color: var(--color-crisis-text);
+}
+
+.finding__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.finding__quote {
+  margin: 0;
+  padding-inline-start: 0.75rem;
+  border-inline-start: 2px solid var(--color-divider);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.finding__citation {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.finding-chip--violation {
+  border-color: var(--color-crisis-text);
+  color: var(--color-crisis-text);
+}
+
+/* Worker: workplace and anonymous reports */
+.privacy-points {
+  display: grid;
+  gap: 0.375rem;
+  max-width: 48rem;
+  margin: 0 0 1rem;
+  padding-inline-start: 1.25rem;
+}
+
+.company-choices .choice__label {
+  display: grid;
+}
+
+.profile-summary + .case-section {
+  margin-top: 2rem;
+}
+
+.report-form,
+.company-form {
+  max-width: 36rem;
+}

@@ -10,6 +10,7 @@ const NAV_ITEMS = {
   victim: [
     { to: '/', labelKey: 'nav.issues' },
     { to: '/lawyers', labelKey: 'nav.lawyers' },
+    { to: '/workplace', labelKey: 'nav.workplace' },
   ],
   hr: [{ to: '/hr', labelKey: 'nav.hr' }],
   law_firm: [

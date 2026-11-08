@@ -7,11 +7,13 @@ import CasesPage from './pages/CasesPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 import FirmProfilePage from './pages/FirmProfilePage.tsx'
+import HrHomePage from './pages/HrHomePage.tsx'
 import LawyerDetailPage from './pages/LawyerDetailPage.tsx'
 import LawyersPage from './pages/LawyersPage.tsx'
 import PartnerHomePage from './pages/PartnerHomePage.tsx'
 import PartnerLoginPage from './pages/PartnerLoginPage.tsx'
 import SignupPage from './pages/SignupPage.tsx'
+import WorkplacePage from './pages/WorkplacePage.tsx'
 
 function App() {
   return (
@@ -27,9 +29,10 @@ function App() {
             <Route index element={<CasesPage />} />
             <Route path="lawyers" element={<LawyersPage />} />
             <Route path="lawyers/:firmId" element={<LawyerDetailPage />} />
+            <Route path="workplace" element={<WorkplacePage />} />
           </Route>
           <Route element={<RequireRole roles={['hr']} />}>
-            <Route path="hr" element={<PartnerHomePage kind="hr" />} />
+            <Route path="hr" element={<HrHomePage />} />
           </Route>
           <Route element={<RequireRole roles={['law_firm']} />}>
             <Route path="firm" element={<PartnerHomePage kind="firm" />} />

@@ -94,6 +94,14 @@ class LlmTests(TestCase):
         extra = client.chat.completions.create.call_args.kwargs["extra_body"]
         self.assertEqual(extra, {"provider": {"data_collection": "deny"}})
 
+    @override_settings(OPENROUTER_DATA_COLLECTION="deny")
+    def test_reasoning_keeps_data_collection(self):
+        client = mock.Mock()
+        with mock.patch.object(llm, "get_client", return_value=client):
+            llm.chat([{"role": "user", "content": "hi"}], reasoning={"effort": "low"})
+        extra = client.chat.completions.create.call_args.kwargs["extra_body"]
+        self.assertEqual(extra, {"provider": {"data_collection": "deny"}, "reasoning": {"effort": "low"}})
+
     @override_settings(OPENROUTER_DATA_COLLECTION="deny", EMBEDDING_MODEL="m")
     def test_embed_sends_data_collection_setting(self):
         client = mock.Mock()
