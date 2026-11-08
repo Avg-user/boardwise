@@ -50,6 +50,28 @@ class CaseApiPermissionTests(APITestCase):
         self.assertEqual(len(self.client.get("/api/cases/").data), 1)
         self.assertEqual(self.client.post("/api/cases/", {"title": "new"}).status_code, 201)
 
+    def test_list_includes_progress_counts(self):
+        from datetime import date
+
+        from apps.tasks.models import Task
+        from .models import TimelineEntry
+        for title in ("a", "b"):
+            TimelineEntry.objects.create(case=self.case, occurred_at=date.today(), title=title)
+        Task.objects.create(case=self.case, title="x", done=True)
+        Task.objects.create(case=self.case, title="y")
+        CaseShare.objects.create(case=self.case, grantee=self.lawyer)
+        CaseShare.objects.create(case=self.case, grantee=self.hr)
+        CaseShare.objects.filter(grantee=self.hr).update(revoked_at="2026-01-01T00:00Z")
+
+        self.client.force_authenticate(self.victim)
+        [row] = self.client.get("/api/cases/").data
+        self.assertEqual((row["timeline_count"], row["tasks_total"], row["tasks_done"], row["shared_count"]),
+                         (2, 2, 1, 1))
+        # A grantee gets the same progress, but never learns who else the case is shared with.
+        self.client.force_authenticate(self.lawyer)
+        [row] = self.client.get("/api/cases/").data
+        self.assertEqual((row["timeline_count"], row["tasks_total"], row["shared_count"]), (2, 2, None))
+
     def test_non_victim_cannot_create_case(self):
         self.as_(self.lawyer)
         self.assertEqual(self.client.post("/api/cases/", {"title": "x"}).status_code, 403)

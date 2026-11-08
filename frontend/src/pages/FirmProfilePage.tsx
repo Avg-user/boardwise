@@ -13,6 +13,7 @@ import {
   type OwnLawFirm,
   type PracticeArea,
 } from '../api/lawfirms.ts'
+import Icon from '../components/Icon.tsx'
 
 const EMPTY: LawFirmInput = {
   name: '',
@@ -345,6 +346,7 @@ function FirmProfilePage() {
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
       <Link className="back-link" to="/firm">
+        <Icon name="chevronLeft" />
         {t('case.backPartner')}
       </Link>
       <h1>{title}</h1>

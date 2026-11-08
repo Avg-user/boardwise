@@ -2,24 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { listCases } from '../api/cases.ts'
-import { getMyProfile } from '../api/lawfirms.ts'
+import { getMyProfile, listFirmRequests } from '../api/lawfirms.ts'
 import FirmRequests from '../components/lawfirms/FirmRequests.tsx'
 import { ProfileStatus } from './FirmProfilePage.tsx'
-import { BuildingIcon, ScalesIcon } from '../components/partners/PartnerIcons.tsx'
 
 type PartnerHomeProps = {
   kind: 'hr' | 'firm'
 }
-
-// Exact keys per role, so the typed i18n keys stay checkable.
-const UPCOMING = {
-  hr: [
-    { title: 'partnerHome.hr.reportsTitle', text: 'partnerHome.hr.reportsText' },
-    { title: 'partnerHome.hr.trendsTitle', text: 'partnerHome.hr.trendsText' },
-    { title: 'partnerHome.hr.jobsTitle', text: 'partnerHome.hr.jobsText' },
-  ],
-  firm: [{ title: 'partnerHome.firm.statsTitle', text: 'partnerHome.firm.statsText' }],
-} as const
 
 /** Shared cases are real: the API lists only cases a worker has shared with this account. */
 function SharedCases() {
@@ -62,6 +51,31 @@ function SharedCases() {
   )
 }
 
+function FirmStats() {
+  const { t } = useTranslation()
+  const requests = useQuery({ queryKey: ['lawfirms', 'me', 'requests'], queryFn: listFirmRequests })
+  const cases = useQuery({ queryKey: ['cases'], queryFn: listCases })
+  if (!requests.data || !cases.data) return null
+  const pending = requests.data.filter((item) => item.status === 'pending').length
+  const accepted = requests.data.filter((item) => item.status === 'accepted').length
+  return (
+    <dl className="stat-tiles firm-stats">
+      <div className={`stat-tile${pending > 0 ? ' stat-tile--attention' : ''}`}>
+        <dt>{t('partnerHome.firm.pending')}</dt>
+        <dd>{pending}</dd>
+      </div>
+      <div className="stat-tile">
+        <dt>{t('partnerHome.firm.shared')}</dt>
+        <dd>{cases.data.length}</dd>
+      </div>
+      <div className="stat-tile">
+        <dt>{t('partnerHome.firm.accepted')}</dt>
+        <dd>{accepted}</dd>
+      </div>
+    </dl>
+  )
+}
+
 function FirmOverview() {
   const { t } = useTranslation()
   const { data: profile, isLoading } = useQuery({ queryKey: ['lawfirms', 'me'], queryFn: getMyProfile })
@@ -72,10 +86,11 @@ function FirmOverview() {
     <>
       <div className="profile-summary">
         <ProfileStatus profile={profile ?? null} />
-        <Link className="button" to="/firm/profile">
+        <Link className="button button--secondary" to="/firm/profile">
           {profile ? t('firmProfile.edit') : t('firmProfile.create')}
         </Link>
       </div>
+      <FirmStats />
       <FirmRequests canAccept={Boolean(profile?.is_verified)} />
     </>
   )
@@ -84,7 +99,6 @@ function FirmOverview() {
 function PartnerHomePage({ kind }: PartnerHomeProps) {
   const { t } = useTranslation()
   const title = t(`partnerHome.${kind}.title`)
-  const Icon = kind === 'hr' ? BuildingIcon : ScalesIcon
 
   return (
     <>
@@ -94,23 +108,7 @@ function PartnerHomePage({ kind }: PartnerHomeProps) {
       <p className="page-description">{t(`partnerHome.${kind}.description`)}</p>
 
       {kind === 'firm' && <FirmOverview />}
-      {kind === 'firm' && <SharedCases />}
-
-      <section className="partner-section" aria-labelledby="upcoming-title">
-        <h2 id="upcoming-title" className="section-title">
-          {t('partnerHome.upcomingTitle')}
-        </h2>
-        <ul className="feature-tiles">
-          {UPCOMING[kind].map((item) => (
-            <li key={item.title} className="feature-tile">
-              <Icon />
-              <h3>{t(item.title)}</h3>
-              <p>{t(item.text)}</p>
-              <span className="tag tag--muted">{t('partnerHome.comingSoon')}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <SharedCases />
     </>
   )
 }

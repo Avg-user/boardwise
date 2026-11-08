@@ -187,6 +187,12 @@ All endpoints require authentication.
 - `faster-whisper==1.2.1` needs `av==16.1.0`: av 17+ removed an argument it uses.
 - Env: `SPEECH_TICKET_SECRET` (Django and the container, from the root `.env`), `SPEECH_MODEL` (`base`; `tiny` is faster, `small` is too slow for live on CPU), `SPEECH_MAX_SESSIONS`, `SPEECH_IDLE_UNLOAD_S`, `DICTATION_MAX_SECONDS` (180), `SPEECH_CPUS`, `SPEECH_THREADS`, `SPEECH_TICKET_TTL` (60), `SPEECH_WS_URL` (`/speech/ws`). In production, route `/speech/` to the speech service with WebSocket upgrades and keep port 9100 private.
 
+### Frontend look
+- One stylesheet, `frontend/src/index.css`, built on tokens at the top: paper background, white cards (`--color-surface`) with hairline borders, ink actions (`--color-action`), safety yellow (`--color-primary`) only for marks and highlights. Partners swap `--color-brand`/`--color-action` (`data-theme="hr"` blue, `"firm"` gold). Dark mode redefines the same tokens.
+- Buttons: `.button` (main action, one per area), `.button--secondary`, `.button--small`, `.button-quiet`, `.icon-button`. Cards: `.panel` and the card classes listed under "Cards".
+- `components/Icon.tsx` (small hand-drawn line icons) and `components/ActionMenu.tsx` (a "⋯" button with secondary actions, e.g. rename/close an issue, download/close a chat). Prefer these to rows of text links.
+- `GET /api/cases/` includes `timeline_count`, `tasks_total`, `tasks_done` and, for the owner only, `shared_count` (subqueries, so the shares join in `accessible_by` can't skew them).
+
 ### Tests
 `apps/speech/tests.py` (ticket access rules and format), `speech/tests.py` (tickets, streaming, server protocol and limits, with a fake model; run in the container), `apps/accounts/tests.py`, `apps/cases/tests.py`, `apps/cases/test_api.py` (access and share rules), `apps/chat/tests.py` (crisis check, prompt building, `data_collection`, send-endpoint permissions), `apps/knowledge/tests.py` (chunking, references, retrieval, fallback), `apps/lawfirms/tests.py` (registration, profiles, directory, match flow and privacy), `apps/hr/tests.py` (suppression, company verification, workplace opt-in, unlinkable reports and rate limit, job offer access, review parsing and retries). Chat tests mock `llm.chat`; tests must never call the real model.
 

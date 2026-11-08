@@ -10,6 +10,7 @@ import ChatPanel from '../components/case/ChatPanel.tsx'
 import MatchesPanel from '../components/case/MatchesPanel.tsx'
 import NextStepsPanel from '../components/case/NextStepsPanel.tsx'
 import TimelinePanel from '../components/case/TimelinePanel.tsx'
+import Icon from '../components/Icon.tsx'
 import NotFoundPage from './NotFoundPage.tsx'
 
 const TABS = [
@@ -57,6 +58,7 @@ function CasePage() {
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
       <Link className="back-link" to={user ? getRoleHome(user.role) : '/'}>
+        <Icon name="chevronLeft" />
         {canEdit ? t('case.back') : t('case.backPartner')}
       </Link>
       <CaseHeader caseItem={caseQuery.data} />
@@ -79,19 +81,19 @@ function CasePage() {
           <ChatPanel caseId={caseId} caseTitle={title} canEdit={canEdit} />
         </section>
         <div className="case-side">
-          <section className="case-pane" data-active={activeTab === 'timeline'}>
+          <section className="case-pane panel" data-active={activeTab === 'timeline'}>
             <TimelinePanel
               caseId={caseId}
               canEdit={canEdit}
               onSessionSelect={() => setActiveTab('chat')}
             />
           </section>
-          <section className="case-pane" data-active={activeTab === 'steps'}>
+          <section className="case-pane panel" data-active={activeTab === 'steps'}>
             <NextStepsPanel caseId={caseId} canEdit={canEdit} />
           </section>
           {/* Only the owner sees who they've contacted; firms never see each other. */}
           {canEdit && (
-            <section className="case-pane" data-active={activeTab === 'steps'}>
+            <section className="case-pane panel" data-active={activeTab === 'steps'}>
               <MatchesPanel caseId={caseId} />
             </section>
           )}

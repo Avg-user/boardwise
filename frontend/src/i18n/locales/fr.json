@@ -82,7 +82,7 @@
     "title": "Mes dossiers",
     "description": "Suivez chaque problème au travail dans un seul espace privé.",
     "empty": "Vous n'avez encore aucun dossier.",
-    "updated": "Mis à jour le {{date}}",
+    "updated": "Mis à jour",
     "closed": "Fermé",
     "newIssue": "Nouveau dossier",
     "emptyCta": "Créer votre premier dossier",
@@ -110,6 +110,13 @@
       "hello": "Bonjour, {{name}}.",
       "helloNoName": "Bonjour.",
       "text": " Reprenez là où vous en étiez, ou commencez un nouveau dossier. Je suis là si vous avez besoin de moi."
+    },
+    "meta": {
+      "entries_one": "{{count}} événement",
+      "entries_other": "{{count}} événements",
+      "steps": "{{done}} étape(s) sur {{total}}",
+      "shared_one": "Partagé avec {{count}} partenaire",
+      "shared_other": "Partagé avec {{count}} partenaires"
     }
   },
   "timeline": {
@@ -180,7 +187,9 @@
       "timeline": "Chronologie",
       "steps": "Prochaines étapes"
     },
-    "backPartner": "Retour au tableau de bord"
+    "backPartner": "Retour au tableau de bord",
+    "openBadge": "Ouvert",
+    "moreActions": "Autres actions pour ce dossier"
   },
   "chat": {
     "aiLabel": "Assistant IA",
@@ -220,6 +229,14 @@
       "danger": "En danger?",
       "call911": "Appelez le 911",
       "call988": "Ligne de crise 988"
+    },
+    "heading": "Conversation",
+    "moreActions": "Autres actions de conversation",
+    "starters": {
+      "label": "Pour commencer",
+      "what": "Aidez-moi à décrire ce qui s'est passé",
+      "rights": "Quels sont mes droits au travail?",
+      "record": "Que devrais-je noter et conserver?"
     }
   },
   "transcript": {
@@ -292,7 +309,10 @@
       "title": "Tableau du cabinet",
       "description": "Les dossiers que des travailleurs ont partagés avec vous, et la façon dont votre cabinet apparaît aux personnes qui cherchent de l'aide.",
       "statsTitle": "Statistiques des dossiers",
-      "statsText": "Montrez les types de dossiers que votre cabinet traite."
+      "statsText": "Montrez les types de dossiers que votre cabinet traite.",
+      "pending": "Demandes en attente",
+      "shared": "Dossiers partagés avec vous",
+      "accepted": "Demandes acceptées"
     }
   },
   "lawyers": {
@@ -367,7 +387,8 @@
       "ar": "Arabe",
       "hi": "Hindi",
       "other": "Autre"
-    }
+    },
+    "view": "Voir le cabinet"
   },
   "matches": {
     "title": "Avocats",
@@ -542,7 +563,9 @@
       "failed": "Échec"
     },
     "partial_one": "Cette offre a été vérifiée en {{total}} parties, et l'IA n'a pas répondu pour la partie {{parts}}. Les résultats de cette partie manquent. Réessayez pour la vérifier.",
-    "partial_other": "Cette offre a été vérifiée en {{total}} parties, et l'IA n'a pas répondu pour les parties {{parts}}. Les résultats de ces parties manquent. Réessayez pour les vérifier."
+    "partial_other": "Cette offre a été vérifiée en {{total}} parties, et l'IA n'a pas répondu pour les parties {{parts}}. Les résultats de ces parties manquent. Réessayez pour les vérifier.",
+    "partNotes_one": "Notes de l'IA ({{count}} partie)",
+    "partNotes_other": "Notes de l'IA ({{count}} parties)"
   },
   "workplace": {
     "eyebrow": "Votre milieu de travail",

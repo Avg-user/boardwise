@@ -8,14 +8,26 @@ User = get_user_model()
 
 class CaseSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
+    # Progress, in the list response only (null elsewhere).
+    timeline_count = serializers.IntegerField(read_only=True, default=None)
+    tasks_total = serializers.IntegerField(read_only=True, default=None)
+    tasks_done = serializers.IntegerField(read_only=True, default=None)
+    shared_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Case
-        fields = ["id", "title", "status", "is_owner", "created_at", "updated_at"]
+        fields = ["id", "title", "status", "is_owner", "created_at", "updated_at",
+                  "timeline_count", "tasks_total", "tasks_done", "shared_count"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_is_owner(self, obj) -> bool:
         return obj.owner_id == self.context["request"].user.pk
+
+    def get_shared_count(self, obj) -> int | None:
+        # Only the owner learns how many people the case is shared with.
+        if not self.get_is_owner(obj):
+            return None
+        return getattr(obj, "shared_count", None)
 
 
 class TimelineEntrySerializer(serializers.ModelSerializer):

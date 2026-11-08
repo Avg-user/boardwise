@@ -3,10 +3,17 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LANGUAGES, listFirms, PRACTICE_AREAS, type FirmFilters } from '../api/lawfirms.ts'
+import Icon from '../components/Icon.tsx'
 import { feeLines } from '../components/lawfirms/format.ts'
 
 /** How long typing has to pause before the search runs. */
 const SEARCH_DELAY_MS = 300
+
+/** Up to two initials for a firm's badge: "Harbour Employment Law" → "HE". */
+function monogram(name: string): string {
+  const words = name.split(/\s+/).filter((word) => /^\p{L}/u.test(word))
+  return words.slice(0, 2).map((word) => word[0]).join('').toUpperCase() || '?'
+}
 
 function LawyersPage() {
   const { t, i18n } = useTranslation()
@@ -142,8 +149,16 @@ function LawyersPage() {
                 state={{ directorySearch: params.toString() ? `?${params}` : '' }}
               >
                 <span className="firm-card__head">
-                  <span className="firm-card__name">{firm.name}</span>
-                  <span className="tag">{t('lawyers.verified')}</span>
+                  <span className="monogram" aria-hidden="true">
+                    {monogram(firm.name)}
+                  </span>
+                  <span className="firm-card__heading">
+                    <span className="firm-card__name">{firm.name}</span>
+                    <span className="verified">
+                      <Icon name="check" />
+                      {t('lawyers.verified')}
+                    </span>
+                  </span>
                 </span>
                 {firm.tagline && <span className="firm-card__tagline">{firm.tagline}</span>}
                 <span className="chips">
@@ -158,7 +173,13 @@ function LawyersPage() {
                     .filter(Boolean)
                     .join(' · ')}
                 </span>
-                <span className="firm-card__fee">{feeLines(firm, t, i18n.resolvedLanguage)[0]}</span>
+                <span className="firm-card__foot">
+                  <span className="firm-card__fee">{feeLines(firm, t, i18n.resolvedLanguage)[0]}</span>
+                  <span className="firm-card__view">
+                    {t('lawyers.view')}
+                    <Icon name="chevronRight" />
+                  </span>
+                </span>
               </Link>
             </li>
           ))}
