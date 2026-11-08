@@ -7,6 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:8000',
+      // Voice dictation WebSocket -> the speech container (docker compose).
+      '/speech': {
+        target: 'http://localhost:9100',
+        ws: true,
+        rewrite: (path) => path.replace(/^\/speech/, ''),
+      },
     },
   },
 })

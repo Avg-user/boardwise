@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'apps.lawfirms',
     'apps.hr',
     'apps.knowledge',
+    'apps.speech',
 ]
 
 MIDDLEWARE = [
@@ -185,6 +186,12 @@ CHAT_HISTORY_LIMIT = int(os.environ.get('CHAT_HISTORY_LIMIT', '40'))
 EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'openai/text-embedding-3-small')
 RAG_TOP_K = int(os.environ.get('RAG_TOP_K', '6'))
 RAG_SEARCH_CONFIG = os.environ.get('RAG_SEARCH_CONFIG', 'english')  # Postgres text search config
+
+# Voice dictation (apps.speech + the `speech` docker service). Django signs one-time tickets with
+# this secret; the speech service checks them. Empty = dictation off (the endpoint returns 503).
+SPEECH_TICKET_SECRET = os.environ.get('SPEECH_TICKET_SECRET', '')
+SPEECH_TICKET_TTL = int(os.environ.get('SPEECH_TICKET_TTL', '60'))
+SPEECH_WS_URL = os.environ.get('SPEECH_WS_URL', '/speech/ws')  # where the browser connects
 
 # Uploaded case files: never under STATIC/MEDIA URLs.
 PRIVATE_MEDIA_ROOT = os.environ.get('PRIVATE_MEDIA_ROOT', str(BASE_DIR / 'private_media'))
