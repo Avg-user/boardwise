@@ -3,8 +3,6 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { listTimeline } from '../../api/cases.ts'
-import { useClosedSessions } from '../../api/closedSessions.ts'
-import { useSessionEntries } from '../../api/sessionEntries.ts'
 import type { ChatMessage, Conversation, TimelineEntry } from '../../api/types.ts'
 import { conversationsQuery, messagesQuery, SESSION_PARAM } from './useConversation.ts'
 
@@ -49,8 +47,6 @@ function CaseTimeline({
   onDeleteEntry,
 }: CaseTimelineProps) {
   const { t, i18n } = useTranslation()
-  const closed = useClosedSessions()
-  const sessionEntries = useSessionEntries()
   const entries = useQuery({
     queryKey: ['cases', caseId, 'timeline'],
     queryFn: () => listTimeline(caseId),
@@ -87,14 +83,16 @@ function CaseTimeline({
     )
   }
 
-  const conversationIds = new Set((conversations.data ?? []).map((conversation) => conversation.id))
-  const entryIds = new Set((entries.data ?? []).map((entry) => entry.id))
-  const sessionByEntry = new Map(
-    [...sessionEntries]
-      .filter(([session, entry]) => conversationIds.has(session) && entryIds.has(entry))
-      .map(([session, entry]) => [entry, session]),
+  // The server links each chat to its entry, so every device shows the same list.
+  const closed = new Set(
+    (conversations.data ?? []).filter((item) => item.closed_at !== null).map((item) => item.id),
   )
-  const linkedSessions = new Set(sessionByEntry.values())
+  const conversationIds = new Set((conversations.data ?? []).map((conversation) => conversation.id))
+  const linkedSessions = new Set(
+    (entries.data ?? []).flatMap((entry) =>
+      entry.conversation !== null && conversationIds.has(entry.conversation) ? [entry.conversation] : [],
+    ),
+  )
 
   const items: TimelineItem[] = [
     ...(entries.data ?? []).map((entry) => ({
@@ -102,7 +100,7 @@ function CaseTimeline({
       key: `entry-${entry.id}`,
       sortKey: `${entry.occurred_at}T${entry.created_at}`,
       entry,
-      sessionId: sessionByEntry.get(entry.id) ?? null,
+      sessionId: entry.conversation !== null && conversationIds.has(entry.conversation) ? entry.conversation : null,
     })),
     ...(conversations.data ?? [])
       .filter((conversation, index) => {

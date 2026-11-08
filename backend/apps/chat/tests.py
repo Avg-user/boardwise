@@ -255,3 +255,104 @@ class SendMessageApiTests(APITestCase):
         r = self.client.post(self.url, {"content": "hi", "province": "ZZ"}, format="json")
         self.assertEqual(r.status_code, 404)
         self.assertEqual(self.convo.messages.count(), 0)
+
+
+@mock.patch("apps.chat.views.llm.chat", return_value=fake_completion())
+class ChatSessionTests(APITestCase):
+    """Timeline entries and closed chats live on the server, so every device agrees."""
+
+    def setUp(self):
+        self.victim = User.objects.create_user("v", role=User.Role.VICTIM)
+        self.lawyer = User.objects.create_user("l", role=User.Role.LAW_FIRM)
+        self.case = Case.objects.create(owner=self.victim, title="t")
+        self.base = f"/api/cases/{self.case.pk}/conversations/"
+        self.client.force_authenticate(self.victim)
+
+    def new_chat(self):
+        return self.client.post(self.base).data["id"]
+
+    def send(self, convo_id, content="What are my rights?", **extra):
+        return self.client.post(f"{self.base}{convo_id}/messages/", {"content": content, **extra}, format="json")
+
+    def test_first_message_creates_one_linked_entry(self, chat):
+        from datetime import date
+
+        from apps.cases.models import TimelineEntry
+        convo = self.new_chat()
+        self.assertIsNone(self.client.get(f"{self.base}{convo}/").data["timeline_entry"])
+        today = date.today().isoformat()
+        self.send(convo, entry_title="Chat on Nov 8, 2026", entry_date=today)
+        self.send(convo, entry_title="Chat on Nov 8, 2026", entry_date=today)  # e.g. from a second browser
+        entry = TimelineEntry.objects.get(case=self.case)
+        self.assertEqual((entry.conversation_id, entry.title, entry.occurred_at.isoformat()),
+                         (convo, "Chat on Nov 8, 2026", today))
+        self.assertEqual(self.client.get(f"{self.base}{convo}/").data["timeline_entry"], entry.pk)
+        timeline = self.client.get(f"/api/cases/{self.case.pk}/timeline/").data
+        self.assertEqual([row["conversation"] for row in timeline], [convo])
+
+    def test_no_entry_when_the_model_fails(self, chat):
+        from apps.cases.models import TimelineEntry
+        chat.side_effect = RuntimeError("down")
+        convo = self.new_chat()
+        self.assertEqual(self.send(convo).status_code, 502)
+        self.assertFalse(TimelineEntry.objects.exists())
+
+    def test_crisis_message_still_gets_an_entry(self, chat):
+        from apps.cases.models import TimelineEntry
+        convo = self.new_chat()
+        self.send(convo, "I want to kill myself")
+        chat.assert_not_called()
+        self.assertEqual(TimelineEntry.objects.get().conversation_id, convo)
+
+    def test_deleted_entry_comes_back_with_the_next_message(self, chat):
+        from apps.cases.models import TimelineEntry
+        convo = self.new_chat()
+        self.send(convo)
+        entry = TimelineEntry.objects.get()
+        self.assertEqual(self.client.delete(f"/api/cases/{self.case.pk}/timeline/{entry.pk}/").status_code, 204)
+        self.assertTrue(Conversation.objects.filter(pk=convo).exists())  # the chat itself stays
+        self.send(convo)
+        self.assertEqual(TimelineEntry.objects.get().conversation_id, convo)
+
+    def test_entry_link_cannot_be_set_by_clients(self, chat):
+        convo = self.new_chat()
+        r = self.client.post(f"/api/cases/{self.case.pk}/timeline/",
+                             {"occurred_at": "2026-11-01", "title": "x", "conversation": convo}, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertIsNone(r.data["conversation"])
+
+    def test_entry_date_must_be_about_today(self, chat):
+        convo = self.new_chat()
+        self.assertEqual(self.send(convo, entry_date="2020-01-01").status_code, 400)
+
+    def test_closed_chat_refuses_messages(self, chat):
+        convo = self.new_chat()
+        r = self.client.post(f"{self.base}{convo}/close/")
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNotNone(r.data["closed_at"])
+        again = self.client.post(f"{self.base}{convo}/close/")  # idempotent
+        self.assertEqual(again.data["closed_at"], r.data["closed_at"])
+        refused = self.send(convo)
+        self.assertEqual(refused.status_code, 409)
+        self.assertNotIn("crisis_resources", refused.data)
+        self.assertEqual(Message.objects.count(), 0)
+        chat.assert_not_called()
+        # Someone in danger still gets resources, even from a closed chat.
+        self.assertIn("crisis_resources", self.send(convo, "I want to kill myself").data)
+        self.assertEqual(Message.objects.count(), 0)
+
+    def test_new_chat_closes_the_open_one(self, chat):
+        first = self.new_chat()
+        second = self.new_chat()
+        chats = {row["id"]: row["closed_at"] for row in self.client.get(self.base).data}
+        self.assertIsNotNone(chats[first])
+        self.assertIsNone(chats[second])
+
+    def test_only_owner_can_close(self, chat):
+        convo = self.new_chat()
+        CaseShare.objects.create(case=self.case, grantee=self.lawyer)
+        self.client.force_authenticate(self.lawyer)
+        self.assertEqual(self.client.post(f"{self.base}{convo}/close/").status_code, 403)
+        stranger = User.objects.create_user("s", role=User.Role.VICTIM)
+        self.client.force_authenticate(stranger)
+        self.assertEqual(self.client.post(f"{self.base}{convo}/close/").status_code, 404)

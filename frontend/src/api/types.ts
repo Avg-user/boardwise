@@ -40,6 +40,8 @@ export type TimelineEntry = {
   description: string
   source: TimelineSource
   document: number | null
+  /** The chat session this entry stands for. Set by the server with the chat's first message. */
+  conversation: number | null
   created_at: string
 }
 
@@ -81,6 +83,10 @@ export type CaseDocument = {
 export type Conversation = {
   id: number
   created_at: string
+  /** Set when the chat was closed. The server refuses new messages to a closed chat. */
+  closed_at: string | null
+  /** The chat's timeline entry, once its first message is saved. */
+  timeline_entry: number | null
 }
 
 export type ApiMessage = {
