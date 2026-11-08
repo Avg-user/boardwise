@@ -78,6 +78,11 @@ class TimelineEntry(models.Model):
     document = models.ForeignKey(
         "documents.Document", null=True, blank=True, on_delete=models.SET_NULL, related_name="timeline_entries"
     )
+    # Each chat session is one timeline entry, created by the server with the chat's first saved
+    # message. One-to-one, so a chat can never get a second entry, whichever device sends.
+    conversation = models.OneToOneField(
+        "chat.Conversation", null=True, blank=True, on_delete=models.SET_NULL, related_name="timeline_entry"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

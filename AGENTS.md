@@ -88,11 +88,11 @@ Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down befo
 - `cases`:
   - `Case` (owner, title, status). `Case.objects.accessible_by(user)` and `case.can_access(user)` are the single source of truth for access. `__str__` returns only the ID.
   - `CaseShare` (case, grantee, granted_at, revoked_at). Only one active share per case and grantee. `revoke()` sets `revoked_at`; records are never deleted.
-  - `TimelineEntry` (occurred_at, title, description, source manual/ai/document, optional document).
+  - `TimelineEntry` (occurred_at, title, description, source manual/ai/document, optional document, optional `conversation`). `conversation` is one-to-one and read-only in the API: the server sets it (see Chat).
 - `documents.Document`:
   - Fields: file, original_name, content_type, extracted_text, status pending/processing/done/failed.
   - Files are stored in `PRIVATE_MEDIA_ROOT` (`backend/private_media/`, gitignored). Encryption is still a TODO.
-- `chat`: `Conversation(case)` and `Message(role, content, flagged_crisis)`.
+- `chat`: `Conversation(case, closed_at)` and `Message(role, content, flagged_crisis)`. The API returns `closed_at` and `timeline_entry` (its entry's id or null) on each conversation.
 - `tasks.Task` (title, notes, due_date, done, created_by_ai).
 - `knowledge` (public law text, no user data):
   - `LawSource` (province, slug, title, source_url, content_hash).
@@ -136,7 +136,11 @@ All endpoints require authentication.
 - **A firm must never see case data before accepting.** Revoking a share through `shares/` also ends its match. Only the owner can list a case's matches, so firms never see which other firms were asked.
 
 ### Chat
-- `GET/POST /api/cases/<case_pk>/conversations/<id>/messages/`. POST `{content, province?, language?}` is owner-only and synchronous. It returns `{user_message, reply}`:
+- Chat sessions live on the server, so every device and API client sees the same thing (this used to be in each browser's localStorage, which made a second browser create duplicate entries):
+  - Each chat is one timeline entry. The send endpoint creates it, in the same transaction, with the chat's first saved message (or the next one if the entry was deleted), using the optional `entry_title` and `entry_date` (the person's local date, within a day of the server's). Nothing is created when the model fails (502).
+  - Only one chat per case is open: creating a conversation closes the others. `POST .../conversations/<id>/close/` (owner only, idempotent) closes one. A message to a closed chat gets **409** and nothing is saved; if the message looks like a crisis the 409 still carries `crisis_resources`.
+  - Migration `cases/0004_link_chat_entries` linked existing chats to their generated entries, deleted the extra copies (generated title, no description only) and left the newest chat per case open.
+- `GET/POST /api/cases/<case_pk>/conversations/<id>/messages/`. POST `{content, province?, language?, entry_title?, entry_date?}` is owner-only and synchronous. It returns `{user_message, reply}`:
   - Crisis check first (`apps/chat/crisis.py`, English and French). If flagged, it saves only the user message with `flagged_crisis=True` and returns `reply: null` plus a plain-text `crisis_resources`. It **skips the model**, and flagged messages are never sent to a model later. The frontend shows its own translated `CrisisBanner`.
   - Otherwise it builds the prompt (`apps/chat/prompts.py`): `system.md` + the law reference, then calls `llm.chat()` with `Write your reply in <language>` and saves both messages. A model failure or empty reply returns 502 and saves **nothing**, so the frontend can safely resend.
   - Retrieval may call the embedding model, so it **must stay after** the crisis check.

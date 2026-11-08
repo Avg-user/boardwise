@@ -1,10 +1,8 @@
 // Sends chat messages outside the chat screen, so a send keeps going (and stays visible)
 // when the person leaves the issue and comes back. One send at a time per issue.
 import { useSyncExternalStore } from 'react'
-import { createTimelineEntry } from '../../api/cases.ts'
 import { createConversation, sendMessage } from '../../api/chat.ts'
-import { closeSession, getClosedSessions } from '../../api/closedSessions.ts'
-import { getSessionEntries, linkSessionEntry } from '../../api/sessionEntries.ts'
+import { ApiError } from '../../api/client.ts'
 import { queryClient } from '../../queryClient.ts'
 import { todayLocal } from '../../utils/date.ts'
 import { conversationsQuery, messagesQuery } from './useConversation.ts'
@@ -18,6 +16,8 @@ export type PendingSend = {
   /** The reply so far, while it streams in. */
   streamed: string
   status: 'sending' | 'failed'
+  /** Why it failed: 'closed' when the chat was closed elsewhere (another device, the API). */
+  failure?: 'closed'
 }
 
 let pending: ReadonlyMap<number, PendingSend> = new Map()
@@ -56,21 +56,6 @@ type SendInput = {
   entryTitle: string
 }
 
-/**
- * Each chat session is a timeline entry. It's created once the chat's first message has
- * gone through, so failed sends leave nothing behind. Older chats get one with their next message.
- */
-async function ensureTimelineEntry(caseId: number, sessionId: number, title: string) {
-  if (getSessionEntries().has(sessionId)) return
-  try {
-    const entry = await createTimelineEntry(caseId, { occurred_at: todayLocal(), title })
-    linkSessionEntry(sessionId, entry.id)
-    await queryClient.invalidateQueries({ queryKey: ['cases', caseId, 'timeline'] })
-  } catch {
-    // The chat still works. It shows as a plain chat session until its next message.
-  }
-}
-
 /** Not cancelled by leaving the screen, so what the app shows matches what the server did. */
 export async function sendChatMessage({ caseId, conversationId, content, language, entryTitle }: SendInput) {
   if (pending.get(caseId)?.status === 'sending') return
@@ -84,13 +69,7 @@ export async function sendChatMessage({ caseId, conversationId, content, languag
   let id = conversationId
   try {
     if (id === null) {
-      // Only one chat stays open per issue. The New chat button asks first; this also covers
-      // reaching a blank chat some other way. The list is fetched fresh, in case it hadn't loaded.
-      const existing = await queryClient.fetchQuery(conversationsQuery(caseId))
-      const closed = getClosedSessions()
-      for (const item of existing) {
-        if (!closed.has(item.id)) closeSession(item.id)
-      }
+      // The server closes any chat still open on this issue: only one stays open.
       id = (await createConversation(caseId)).id
       update(caseId, { conversationId: id })
       await queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true })
@@ -100,17 +79,27 @@ export async function sendChatMessage({ caseId, conversationId, content, languag
       conversationId: id,
       content,
       language,
+      // The server makes the chat's timeline entry with its first saved message.
+      entryTitle,
+      entryDate: todayLocal(),
       onDelta: (piece) => update(caseId, { streamed: (pending.get(caseId)?.streamed ?? '') + piece }),
     })
     // Load the saved messages, then clear the pending bubble straight away, so the reply
     // never shows twice. Load first, so the message doesn't flicker out in between.
     await queryClient.fetchQuery(messagesQuery(caseId, id))
-  } catch {
-    update(caseId, { status: 'failed' })
+  } catch (error) {
+    const closedElsewhere = error instanceof ApiError && error.status === 409
+    update(caseId, { status: 'failed', failure: closedElsewhere ? 'closed' : undefined })
+    // 409: the chat was closed elsewhere, e.g. on another device. Reload so it shows as closed.
+    if (closedElsewhere) {
+      await queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true }).catch(() => {})
+    }
     return
   }
   set(caseId, null)
-  // Bookkeeping after the message is safely saved. A failure here isn't a failed send.
-  await ensureTimelineEntry(caseId, id, entryTitle)
-  await queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true }).catch(() => {})
+  // The first message may have created the chat's timeline entry.
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['cases', caseId, 'timeline'] }),
+    queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true }),
+  ]).catch(() => {})
 }

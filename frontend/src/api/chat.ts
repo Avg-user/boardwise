@@ -7,6 +7,9 @@ export type SendMessageInput = {
   content: string
   /** The language the reply should be written in, such as `en` or `fr`. */
   language: string
+  /** Title and local date for the chat's timeline entry, if this message creates it. */
+  entryTitle?: string
+  entryDate?: string
   /** Called with each piece of the reply as it arrives. Until WebSocket streaming exists, called once with the whole reply. */
   onDelta?: (text: string) => void
   signal?: AbortSignal
@@ -36,6 +39,11 @@ export function createConversation(caseId: number): Promise<Conversation> {
   return request<Conversation>(`/cases/${caseId}/conversations/`, { method: 'POST' })
 }
 
+/** Closes a chat for good: it stays readable, and the server refuses new messages to it. */
+export function closeConversation(caseId: number, conversationId: number): Promise<Conversation> {
+  return request<Conversation>(`/cases/${caseId}/conversations/${conversationId}/close/`, { method: 'POST' })
+}
+
 export async function listMessages(
   caseId: number,
   conversationId: number,
@@ -56,12 +64,18 @@ export async function sendMessage({
   conversationId,
   content,
   language,
+  entryTitle,
+  entryDate,
   onDelta,
   signal,
 }: SendMessageInput): Promise<SendMessageResult> {
   const result = await request<SendMessageResponse>(
     `/cases/${caseId}/conversations/${conversationId}/messages/`,
-    { method: 'POST', json: { content, language }, signal },
+    {
+      method: 'POST',
+      json: { content, language, entry_title: entryTitle, entry_date: entryDate },
+      signal,
+    },
   )
   if (result.reply) {
     onDelta?.(result.reply.content)

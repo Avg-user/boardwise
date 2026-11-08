@@ -137,6 +137,9 @@ class Command(BaseCommand):
         for title in ["Save copies of relevant emails", "Write down witness names", "Review company HR policy"]:
             Task.objects.create(case=case, title=title, created_by_ai=True)
         convo = Conversation.objects.create(case=case)
+        # Each chat session is a timeline entry, as the send endpoint would create it.
+        TimelineEntry.objects.create(case=case, conversation=convo, occurred_at=today,
+                                     title=f"Chat on {today:%b} {today.day}, {today.year}")
         Message.objects.create(conversation=convo, role=Message.Role.USER, content="I don't know where to start.")
         Message.objects.create(
             conversation=convo,
