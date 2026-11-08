@@ -43,6 +43,26 @@ def law_reference(code: str, query: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+NO_CONTACTS = "(No verified contacts for this province. Suggest its employment standards or OHS office in general terms.)"
+
+
+def contacts(code: str) -> str:
+    """Verified offices and phone numbers (prompts/contacts/<CODE>.md), always in the prompt so the
+    model never has to invent them. Kept out of provinces/ so ingest_laws doesn't load it."""
+    path = PROMPTS_DIR / "contacts" / f"{code}.md"
+    return path.read_text(encoding="utf-8").strip() if code.isalpha() and path.is_file() else NO_CONTACTS
+
+
+def documents(code: str) -> str:
+    """Titles of the province's law documents, so the model cites them by their real names."""
+    from apps.knowledge.models import LawSource
+    titles = list(LawSource.objects.filter(province=code).order_by("title").values_list("title", flat=True))
+    return ", ".join(titles) or "the reference below"
+
+
 def system_prompt(province: str, query: str = "") -> str:
     template = (PROMPTS_DIR / "system.md").read_text(encoding="utf-8")
-    return template.replace("{province}", province).replace("{labour_law}", law_reference(province, query))
+    return (template.replace("{province}", province)
+            .replace("{documents}", documents(province))
+            .replace("{contacts}", contacts(province))
+            .replace("{labour_law}", law_reference(province, query)))

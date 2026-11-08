@@ -87,6 +87,54 @@ class IngestAndSearchTests(TestCase):
         with self.assertRaises(ProvinceNotFound):
             check_province("YY")
 
+    def test_everyday_words_find_legal_terms(self):
+        ingest_markdown("XX", "act", "Safety Act", """# Safety Act
+
+## Section 162 Fire hazards
+An employer must prevent fire at a work site.
+
+## Section 18 Where disciplinary action prohibited
+No person shall take disciplinary action against a worker acting in compliance with this Act.
+""")
+        refs = [c.section_ref for c in search("XX", "I was fired, is that a reprisal?")]
+        self.assertEqual(refs, ["18"])  # "fired" no longer matches "fire"
+
+
+class LegalTermsTests(TestCase):
+    def test_maps_everyday_words(self):
+        from .retrieval import _legal_terms
+        self.assertNotIn("fired", _legal_terms("They fired me"))
+        self.assertIn("disciplinary action", _legal_terms("Is this retaliation?"))
+        self.assertIn("safety data sheet", _legal_terms("no SDS given"))
+        self.assertIn("compensation claim", _legal_terms("Can I file a WCB claim?"))
+        self.assertEqual(_legal_terms("termination notice"), "termination notice")
+
+    def test_threats_add_disciplinary_action_and_keep_the_word(self):
+        from .retrieval import _legal_terms
+        q = _legal_terms("A supervisor texted her saying it would hurt her career")
+        self.assertIn("hurt her career disciplinary action", q)
+        q = _legal_terms("a threat of violence at work")
+        self.assertIn("threat", q)
+        self.assertIn("violence", q)
+
+
+class ExposureLimitRowTests(TestCase):
+    def test_rows_are_spelled_out(self):
+        from .pdf import _oel_row
+        self.assertEqual(_oel_row("14464-46-1 - 0.025 - - - - A2"),
+                         "CAS 14464-46-1: 8-hour limit: 0.025 mg/m³; no 15-minute or ceiling limit; carcinogen A2")
+        self.assertEqual(_oel_row("Acetaldehyde 75-07-0 - - - (c) 25 (c) 45 3"),
+                         "Acetaldehyde (CAS 75-07-0): 8-hour limit: none; ceiling limit: 25 ppm, 45 mg/m³; "
+                         "substance interaction note 3")
+        self.assertEqual(_oel_row("Cumene 98-82-8 50 246 - - - -"),
+                         "Cumene (CAS 98-82-8): 8-hour limit: 50 ppm, 246 mg/m³; no 15-minute or ceiling limit")
+
+    def test_rows_that_dont_fit_are_unchanged(self):
+        from .pdf import _oel_row
+        for line in ["Cresol, all isomers 1319-77-3", "Chloroacetone 78-95-5   - (c) 1 (c) 3.8 1, 3",
+                     "Cobalt carbonyl, as Co 10210-68-1 - 0.1  - - -", "(Silica, crystalline)"]:
+            self.assertEqual(_oel_row(line), line)
+
 
 class EmbeddingTests(TestCase):
     @override_settings(EMBEDDING_MODEL="test-model")

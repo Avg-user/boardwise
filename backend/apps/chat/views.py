@@ -37,6 +37,19 @@ def _ensure_timeline_entry(convo, title, occurred_at):
         pass
 
 
+def _drop_old_replies(newest_first: list[Message], keep: int) -> list[Message]:
+    """Keep every user message but only the `keep` newest assistant replies. The user's messages
+    hold the facts; old replies mostly carry the model's own earlier mistakes, and cost tokens."""
+    out, replies = [], 0
+    for m in newest_first:
+        if m.role == Message.Role.ASSISTANT:
+            replies += 1
+            if replies > keep:
+                continue
+        out.append(m)
+    return out
+
+
 class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateModelMixin,
                           mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """Conversation history, plus sending a message (synchronous for now; WebSocket streaming later)."""
@@ -119,12 +132,13 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
         prompt += f"\n\nWrite your reply in {language}."
         history = list(convo.messages.exclude(role=Message.Role.SYSTEM)
                        .exclude(flagged_crisis=True).order_by("-created_at")[:settings.CHAT_HISTORY_LIMIT - 1])
+        history = _drop_old_replies(history, settings.CHAT_HISTORY_ASSISTANT_TURNS)
         payload = [{"role": "system", "content": prompt}]
         payload += [{"role": m.role, "content": m.content} for m in reversed(history)]
         payload.append({"role": "user", "content": content})
 
         try:
-            completion = llm.chat(payload)
+            completion = llm.chat(payload, temperature=settings.CHAT_TEMPERATURE)
             text = (completion.choices[0].message.content or "").strip()
             # Small models sometimes call a real workplace-law question off-topic because the
             # reference doesn't cover it. Ask once more before refusing.
@@ -134,7 +148,8 @@ class ConversationViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateM
                     "This question is about work or workplace law, so it is on-topic. Answer it. If the "
                     "reference doesn't cover it, say so and point to the right office."
                 )}]
-                text = (llm.chat(retry).choices[0].message.content or "").strip()
+                text = (llm.chat(retry, temperature=settings.CHAT_TEMPERATURE).choices[0].message.content
+                        or "").strip()
         except Exception as exc:  # never log content, only IDs and the error type
             logger.error("LLM call failed: conversation=%s error=%s", convo.pk, type(exc).__name__)
             text = ""

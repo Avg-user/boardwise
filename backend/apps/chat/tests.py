@@ -57,6 +57,15 @@ class OffTopicRequestTests(TestCase):
                   "Can you help me write a complaint letter?", "I worked 9 hours with no break"]:
             self.assertFalse(is_off_topic_request(t), t)
 
+    def test_case_questions_are_workplace_related(self):
+        from .scope import is_workplace_related
+        for t in ["How should I be documenting all this? Is emailing myself a good way to timestamp things?",
+                  "They offered me $26,000 to sign a non-disclosure agreement at mediation. Should I take it?",
+                  "Were they required to give me a safety data sheet before I used those chemicals?",
+                  "We had no masks while burning off the coating"]:
+            self.assertTrue(is_workplace_related(t), t)
+        self.assertFalse(is_workplace_related("Tell me a joke about cats"))
+
     def test_reply_offering_code_is_off_topic(self):
         from .scope import is_off_topic
         offer = ("Absolutely! I'd be happy to help you write a Python program! Describe the task "
@@ -76,8 +85,21 @@ class OffTopicRequestTests(TestCase):
 class PromptTests(TestCase):
     def test_builds_prompt(self):
         p = system_prompt("AB")
-        self.assertNotIn("{labour_law}", p)
-        self.assertNotIn("{province}", p)
+        for placeholder in ["{labour_law}", "{province}", "{contacts}", "{documents}"]:
+            self.assertNotIn(placeholder, p)
+
+    def test_prompt_has_verified_contacts_and_no_real_example_citation(self):
+        p = system_prompt("AB")
+        self.assertIn("1-866-922-9221", p)  # WCB-Alberta
+        self.assertIn("1-866-415-8690", p)  # OHS Contact Centre
+        self.assertIn("within 180 days (OHS Act s. 19)", p)  # where safety reprisals go
+        self.assertNotIn("s. 57", p)  # small models copied this example into made-up citations
+
+    def test_prompt_lists_document_titles(self):
+        from apps.knowledge.ingest import ingest_markdown
+        with override_settings(EMBEDDING_MODEL=""):
+            ingest_markdown("AB", "ohs-act", "Occupational Health and Safety Act", "# T\n\n## Section 18 X\nText.")
+        self.assertIn("Occupational Health and Safety Act", system_prompt("AB", "x"))
 
     def test_unknown_or_bad_province(self):
         for code in ["ZZ", "../x"]:
@@ -197,6 +219,23 @@ class SendMessageApiTests(APITestCase):
         self.client.force_authenticate(self.victim)
         self.client.post(self.url, {"content": "second"}, format="json")
         self.assertEqual([m["content"] for m in chat.call_args.args[0][1:]], ["first", "answer", "second"])
+
+    @override_settings(CHAT_TEMPERATURE=0.2)
+    def test_chat_uses_low_temperature(self, chat):
+        chat.return_value = fake_completion()
+        self.client.force_authenticate(self.victim)
+        self.client.post(self.url, {"content": "What are my rights?"}, format="json")
+        self.assertEqual(chat.call_args.kwargs["temperature"], 0.2)
+
+    @override_settings(CHAT_HISTORY_ASSISTANT_TURNS=2)
+    def test_only_newest_replies_are_resent(self, chat):
+        for i in range(1, 4):
+            Message.objects.create(conversation=self.convo, role="user", content=f"q{i}")
+            Message.objects.create(conversation=self.convo, role="assistant", content=f"a{i}")
+        chat.return_value = fake_completion()
+        self.client.force_authenticate(self.victim)
+        self.client.post(self.url, {"content": "q4"}, format="json")
+        self.assertEqual([m["content"] for m in chat.call_args.args[0][1:]], ["q1", "q2", "a2", "q3", "a3", "q4"])
 
     def test_crisis_skips_model(self, chat):
         self.client.force_authenticate(self.victim)
