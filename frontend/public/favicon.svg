@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4a6318"/><path fill="#fff" d="M10 7h7.5c3.6 0 5.8 1.8 5.8 4.7 0 1.9-1 3.3-2.7 4 2.2.6 3.5 2.2 3.5 4.4 0 3.1-2.4 4.9-6.2 4.9H10V7Zm7 7.4c1.6 0 2.5-.7 2.5-2s-.9-2-2.5-2h-3.2v4H17Zm.4 7.2c1.8 0 2.8-.8 2.8-2.2s-1-2.2-2.8-2.2h-3.6v4.4h3.6Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 0 88 88">
+  <!-- Boardwise owl head: same shapes as OwlMark in src/components/brand/Owl.tsx, colours inlined. -->
+  <path fill="#8a6a4b" d="M22 30 L27 6 L44 22 Z" />
+  <path fill="#8a6a4b" d="M98 30 L93 6 L76 22 Z" />
+  <ellipse fill="#8a6a4b" cx="60" cy="48" rx="42" ry="34" />
+  <path fill="none" stroke="#6b4f36" stroke-width="3" stroke-linecap="round" d="M30 30 Q44 22 58 32 M90 30 Q76 22 62 32" />
+  <circle fill="#f6eedc" cx="43" cy="50" r="17" />
+  <circle fill="#f6eedc" cx="77" cy="50" r="17" />
+  <circle fill="#1d1a16" cx="43" cy="50" r="8.5" />
+  <circle fill="#1d1a16" cx="77" cy="50" r="8.5" />
+  <circle fill="#ffffff" cx="46" cy="47" r="2.6" />
+  <circle fill="#ffffff" cx="80" cy="47" r="2.6" />
+  <path fill="#ffc629" d="M54.5 60 H65.5 L60 71 Z" />
+</svg>
