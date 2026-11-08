@@ -7,6 +7,7 @@ from rest_framework.routers import DefaultRouter
 from apps.cases.views import CaseShareViewSet, CaseViewSet, TimelineEntryViewSet
 from apps.chat.views import ConversationViewSet
 from apps.documents.views import DocumentViewSet
+from apps.hr.views import JobOfferViewSet, companies, hr_dashboard, my_company, report_incident, workplace
 from apps.lawfirms.views import CaseMatchViewSet, FirmRequestViewSet, LawFirmViewSet, my_profile
 from apps.speech.views import DictationTicketView
 from apps.tasks.views import TaskViewSet
@@ -19,6 +20,10 @@ def health(request):
 router = DefaultRouter()
 router.register("cases", CaseViewSet, basename="case")
 router.register("lawfirms", LawFirmViewSet, basename="lawfirm")
+
+hr_router = DefaultRouter()
+hr_router.register("job-offers", JobOfferViewSet, basename="hr-job-offers")
+hr_router.include_root_view = False
 
 firm_router = DefaultRouter()
 firm_router.register("requests", FirmRequestViewSet, basename="firm-requests")
@@ -40,6 +45,12 @@ urlpatterns = [
     # Before the router, so "me" is never read as a firm id.
     path("api/lawfirms/me/", my_profile),
     path("api/lawfirms/me/", include(firm_router.urls)),
+    path("api/companies/", companies),
+    path("api/hr/company/", my_company),
+    path("api/hr/dashboard/", hr_dashboard),
+    path("api/hr/", include(hr_router.urls)),
+    path("api/workplace/", workplace),
+    path("api/workplace/reports/", report_incident),
     path("api/", include(router.urls)),
     path("api/cases/<int:case_pk>/dictation-ticket/", DictationTicketView.as_view(), name="case-dictation-ticket"),
     path("api/cases/<int:case_pk>/", include(case_router.urls)),
