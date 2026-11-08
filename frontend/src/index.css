@@ -3043,6 +3043,87 @@ select:disabled {
   position: relative;
 }
 
+/* ---------------------------------------------------------------------------------------------
+ * Quick exit and lock
+ * ------------------------------------------------------------------------------------------- */
+/* Always in the same place in the header, solid so it's found without looking for it. */
+.quick-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.5rem;
+  padding: 0 0.875rem 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-action);
+  color: var(--color-on-action);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.quick-exit:hover {
+  background: var(--color-action-hover);
+}
+
+.quick-exit .icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.lock-screen {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+}
+
+.lock-screen__card {
+  width: 100%;
+  text-align: center;
+}
+
+.lock-screen__card .form {
+  text-align: start;
+}
+
+.lock-screen__owl {
+  display: block;
+  width: 5.5rem;
+  height: auto;
+  margin: 0 auto 0.75rem;
+}
+
+/* The minute-before-locking notice, floating above the page. */
+.idle-warning-region {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.idle-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  max-width: 34rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-elevated);
+  box-shadow: var(--shadow-pop);
+  font-size: 0.9375rem;
+  pointer-events: auto;
+  animation: pop-in 0.15s ease-out;
+}
+
 /* A round, borderless button (44px tap area). Only a soft background on hover or when open. */
 .header-menu__trigger {
   display: inline-grid;

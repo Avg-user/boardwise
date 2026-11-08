@@ -1,10 +1,17 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { logout } from '../api/auth.ts'
-import type { UserRole } from '../api/types.ts'
+import type { User, UserRole } from '../api/types.ts'
+import { endSessionNow } from '../auth/privacy.ts'
+import { useIdleLock } from '../auth/useIdleLock.ts'
 import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import { CURRENT_USER_KEY, clearSession, queryClient } from '../queryClient.ts'
 import HeaderMenu from './HeaderMenu.tsx'
+import LockScreen from './LockScreen.tsx'
+import QuickExit from './QuickExit.tsx'
 import { OwlMark } from './brand/Owl.tsx'
+import { resetSpeaking } from './case/readAloud.ts'
 
 const NAV_ITEMS = {
   victim: [
@@ -19,6 +26,8 @@ const NAV_ITEMS = {
   ],
 } as const satisfies Record<UserRole, readonly { to: string; labelKey: string }[]>
 
+type Lock = { username: string; role: UserRole; reason: 'idle' | 'manual' }
+
 const THEMES: Record<UserRole, string | undefined> = {
   victim: undefined,
   hr: 'hr',
@@ -29,9 +38,29 @@ function AppLayout() {
   const { t } = useTranslation()
   const { user } = useCurrentUser()
   const { pathname } = useLocation()
+  const [lock, setLock] = useState<Lock | null>(null)
+  const role = user?.role ?? lock?.role
   // Partners get their own look: HR in blue, law firms in gold. Workers keep the default.
-  const theme = user ? THEMES[user.role] : pathname.startsWith('/partners') ? 'partner' : undefined
+  const theme = role ? THEMES[role] : pathname.startsWith('/partners') ? 'partner' : undefined
   const portal = user && user.role !== 'victim' ? t(`nav.portal.${user.role}`) : null
+  // Workers, and anyone on the worker sign-in pages, can leave quickly. Partners are at work.
+  const showQuickExit = role ? role === 'victim' : !pathname.startsWith('/partners')
+
+  /** Hides the page and ends the session; the same account signs in again to carry on. */
+  function lockNow(reason: Lock['reason']) {
+    if (!user) return
+    setLock({ username: user.username, role: user.role, reason })
+    resetSpeaking()
+    endSessionNow()
+    clearSession()
+  }
+
+  function handleUnlock(unlocked: User) {
+    queryClient.setQueryData(CURRENT_USER_KEY, unlocked)
+    setLock(null)
+  }
+
+  const idle = useIdleLock(Boolean(user) && !lock, () => lockNow('idle'))
 
   async function handleSignOut() {
     try {
@@ -70,16 +99,31 @@ function AppLayout() {
             </nav>
           )}
           <div className="app-tools">
-            <HeaderMenu user={user} onSignOut={handleSignOut} />
+            {showQuickExit && <QuickExit />}
+            <HeaderMenu user={user} onSignOut={handleSignOut} onLock={() => lockNow('manual')} />
           </div>
         </div>
       </header>
       <main id="main-content" className="container app-main" tabIndex={-1}>
-        {/* Keyed by page, so each page fades in. Query strings, like ?session=, don't re-trigger it. */}
-        <div key={pathname} className="page-enter">
-          <Outlet />
-        </div>
+        {lock ? (
+          <LockScreen username={lock.username} reason={lock.reason} onUnlock={handleUnlock} />
+        ) : (
+          // Keyed by page, so each page fades in. Query strings, like ?session=, don't re-trigger it.
+          <div key={pathname} className="page-enter">
+            <Outlet />
+          </div>
+        )}
       </main>
+      <div className="idle-warning-region" role="status">
+        {idle.warning && (
+          <div className="idle-warning">
+            <span>{t('lock.warning')}</span>
+            <button type="button" className="button button--small" onClick={idle.stayActive}>
+              {t('lock.stay')}
+            </button>
+          </div>
+        )}
+      </div>
       <footer className="app-footer">
         <p className="container">{t('layout.disclaimer')}</p>
       </footer>
