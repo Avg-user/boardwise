@@ -10,6 +10,7 @@ import CrisisBanner from './CrisisBanner.tsx'
 import Markdown from './Markdown.tsx'
 import { NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
 import { useDictation } from './useDictation.ts'
+import { warmDictation } from '../../api/dictation.ts'
 
 const DICTATION_ERRORS = {
   micDenied: 'chat.dictation.micDenied',
@@ -129,6 +130,10 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
       setDraft((current) => appendText(current, partial))
     },
   })
+  // Load the speech model while the chat is open, so Speak starts at once.
+  useEffect(() => {
+    if (dictation.available) warmDictation()
+  }, [dictation.available])
   const isDictating = dictation.status !== 'idle'
   const wasDictating = useRef(false)
 
@@ -431,7 +436,7 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                 aria-multiline="true"
                 aria-labelledby="chat-message-label"
               >
-                {draft.trim() || dictation.partial ? (
+                {dictation.status !== 'connecting' && (draft.trim() || dictation.partial) ? (
                   <>
                     {draft.trimEnd()}
                     {draft.trim() && dictation.partial ? ' ' : ''}
@@ -440,11 +445,15 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                     )}
                   </>
                 ) : (
-                  <span className="composer__partial">
-                    {dictation.status === 'connecting'
-                      ? t('chat.dictation.connecting')
-                      : t('chat.dictation.listening')}
-                  </span>
+                  <>
+                    {draft.trimEnd()}
+                    {draft.trim() ? ' ' : ''}
+                    <span className="composer__partial">
+                      {dictation.status === 'connecting'
+                        ? t('chat.dictation.connecting')
+                        : t('chat.dictation.listening')}
+                    </span>
+                  </>
                 )}
               </div>
             ) : (
@@ -463,6 +472,7 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                 className={isDictating ? 'button-quiet composer__mic composer__mic--on' : 'button-quiet composer__mic'}
                 type="button"
                 aria-pressed={isDictating}
+                onPointerEnter={warmDictation}
                 disabled={isCaseBusy}
                 onClick={() => {
                   if (isDictating) {
@@ -485,7 +495,11 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
             </button>
           </div>
           <p className="visually-hidden" role="status">
-            {dictation.status === 'listening' ? t('chat.dictation.listening') : ''}
+            {dictation.status === 'listening'
+              ? t('chat.dictation.listening')
+              : dictation.status === 'connecting'
+                ? t('chat.dictation.connecting')
+                : ''}
           </p>
           <p className="chat__notice">{t('chat.notice')}</p>
         </form>
