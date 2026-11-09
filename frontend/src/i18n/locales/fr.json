@@ -57,10 +57,13 @@
     "firm": "Tableau de bord",
     "portal": {
       "hr": "Comité RH",
-      "law_firm": "Cabinet d'avocats"
+      "law_firm": "Cabinet d'avocats",
+      "staff": "Équipe"
     },
     "firmProfile": "Profil",
-    "workplace": "Milieu de travail"
+    "workplace": "Milieu de travail",
+    "messages": "Messages",
+    "staff": "Vérification"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -290,9 +293,12 @@
     "hide": "Masquer ce message"
   },
   "notFound": {
-    "title": "Page introuvable",
-    "description": "Cette page n'existe pas ou a peut-être été déplacée.",
-    "back": "Aller à Mes dossiers"
+    "title": "Nous n'avons pas trouvé cette page",
+    "description": "L'adresse est peut-être mal saisie, ou la page a été déplacée ou supprimée. Si vous avez suivi un lien vers un dossier ou une conversation, il a peut-être été supprimé, ou il n'est pas partagé avec vous.",
+    "home": "Aller à ma page d'accueil",
+    "signIn": "Aller à la connexion",
+    "goBack": "Revenir en arrière",
+    "help": "En danger? Composez le 911. Pour du soutien en tout temps, appelez ou textez le 988."
   },
   "partners": {
     "prompt": "Comité RH ou cabinet d'avocats?",
@@ -339,7 +345,8 @@
       "statsText": "Montrez les types de dossiers que votre cabinet traite.",
       "pending": "Demandes en attente",
       "shared": "Dossiers partagés avec vous",
-      "accepted": "Demandes acceptées"
+      "accepted": "Demandes acceptées",
+      "unreadMessages": "Messages non lus"
     }
   },
   "lawyers": {
@@ -624,5 +631,112 @@
     "send": "Envoyer anonymement",
     "sent": "Signalement envoyé. Merci.",
     "limit": "Vous avez atteint le nombre maximal de signalements ce mois-ci. Vous pourrez en envoyer d'autres le mois prochain."
+  },
+  "firmEmail": {
+    "title": "Écrire à ce cabinet",
+    "intro": "Écrivez au cabinet ici, sur Boardwise. Sa réponse apparaîtra dans Messages. Le cabinet ne voit ni votre nom d'utilisateur ni vos dossiers, seulement ce que vous écrivez.",
+    "tipBrackets": "Remplacez les parties entre [crochets] et supprimez celles que vous préférez ne pas encore communiquer.",
+    "tipPrivate": "Restez bref. Gardez l'histoire complète et ce que vous préférez dire en personne pour quand le cabinet aura accepté de vous aider.",
+    "tipConflict": "Les cabinets demandent d'abord le nom de votre employeur pour vérifier qu'ils ne le représentent pas déjà (« vérification des conflits d'intérêts »).",
+    "subjectLabel": "Objet",
+    "bodyLabel": "Message",
+    "subject": "Demande d'un nouveau client : problème au travail",
+    "body": "Bonjour à l'équipe de {{firm}},\n\nJ'ai trouvé votre cabinet sur Boardwise et je cherche de l'aide pour un problème au travail à [ville, province].\n\nEn bref : [une ou deux phrases sur ce qui se passe, par exemple « Mon gestionnaire fait des commentaires répétés sur mon apparence, et j'ai été retiré d'un projet après l'avoir signalé. »]\n\nAvant d'aller plus loin, j'ai quelques questions :\n\n1. Acceptez-vous de nouveaux clients pour ce type de dossier?\n2. {{consultation}}\n3. Comment facturez-vous (à l'heure, forfait ou honoraires conditionnels), et combien coûterait environ une première étape?\n4. Pourrions-nous parler en [français / anglais / une autre langue]?\n\nPour votre vérification des conflits d'intérêts, mon employeur est [nom de l'employeur].\n\nDates importantes : [par exemple « le dernier incident a eu lieu le 12 mai » ou « j'ai été congédié le 3 juin »].\n\nVous pouvez me répondre ici, sur Boardwise. Si vous préférez appeler, mon numéro est [téléphone personnel], idéalement [jours et heures]. Merci de ne pas me contacter par mon courriel ou mon téléphone de travail.\n\nMerci,\n[Votre nom]",
+    "consultationFree": "Votre profil mentionne une première consultation gratuite. Comment puis-je la réserver, et combien de temps dure-t-elle?",
+    "consultationAsk": "Offrez-vous une première consultation gratuite ou à faible coût? Sinon, combien coûte une première rencontre?",
+    "existing": "Vous échangez déjà avec ce cabinet. Poursuivez la conversation dans Messages.",
+    "openConversation": "Ouvrir la conversation",
+    "send": "Envoyer le message",
+    "sending": "Envoi…",
+    "privacy": "Seul ce cabinet peut lire votre message. N'incluez rien que vous ne voudriez pas encore lui dire."
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Vos conversations avec des cabinets d'avocats. Les cabinets voient seulement ce que vous écrivez ici, jamais votre nom d'utilisateur ni vos dossiers.",
+    "firmDescription": "Messages de travailleurs. Vous voyez seulement ce qu'ils écrivent, pas qui ils sont, jusqu'à ce qu'ils choisissent de vous le dire ou de partager un dossier.",
+    "findFirm": "Trouver un avocat",
+    "empty": "Aucun message pour l'instant. Ouvrez la page d'un cabinet dans Trouver un avocat pour lui écrire.",
+    "emptyFirm": "Aucun message pour l'instant. Les travailleurs peuvent écrire à votre cabinet une fois qu'il est répertorié.",
+    "aWorker": "Un travailleur",
+    "you": "Vous",
+    "unread": "non lu",
+    "unreadCount_one": "{{count}} conversation avec de nouveaux messages",
+    "unreadCount_other": "{{count}} conversations avec de nouveaux messages",
+    "back": "Tous les messages",
+    "withFirm": "Conversation avec {{firm}}",
+    "withWorker": "Conversation avec un travailleur. Vous ne voyez pas son nom d'utilisateur.",
+    "viewFirm": "Voir la page du cabinet",
+    "logLabel": "Messages de cette conversation",
+    "replyLabel": "Votre réponse",
+    "replyPlaceholder": "Écrire à {{name}}…",
+    "send": "Envoyer",
+    "sendFailed": "Votre message n'a pas été envoyé. Vérifiez votre connexion et réessayez.",
+    "cannotReply": "Ce cabinet ne peut pas répondre pour l'instant, car il n'est pas vérifié en ce moment.",
+    "workerFootnote": "Seuls vous et ce cabinet pouvez lire cette conversation. Écrire ici ne partage aucun de vos dossiers.",
+    "firmFootnote": "Seuls votre cabinet et ce travailleur peuvent lire cette conversation. Appuyez sur Ctrl+Entrée ou Cmd+Entrée pour envoyer."
+  },
+  "staff": {
+    "eyebrow": "Équipe Boardwise",
+    "title": "Vérification",
+    "description": "Vérifiez les cabinets d'avocats et les entreprises avant qu'ils soient répertoriés ou puissent voir quoi que ce soit. Rien ici ne montre les dossiers, discussions ou signalements des travailleurs.",
+    "firmsWaiting": "Cabinets en attente",
+    "companiesWaiting": "Entreprises en attente",
+    "verifiedTotals": "Vérifiés",
+    "accounts": "Comptes",
+    "tabsLabel": "Quoi vérifier",
+    "tab": {
+      "firms": "Cabinets d'avocats",
+      "companies": "Entreprises (RH)"
+    },
+    "statusLabel": "Afficher",
+    "status": {
+      "pending": "En attente",
+      "verified": "Vérifiés",
+      "all": "Tous"
+    },
+    "search": "Rechercher",
+    "searchFirms": "Rechercher par nom, ville ou numéro du Barreau",
+    "searchCompanies": "Rechercher par nom ou ville",
+    "firmHint": "Vérifiez le numéro dans le répertoire des avocats du Barreau de l'Alberta, et que le nom correspond, avant de vérifier. Les cabinets vérifiés qui acceptent des clients apparaissent dans Trouver un avocat.",
+    "companyHint": "Confirmez que la personne des RH travaille dans cette entreprise, par exemple en appelant son numéro principal. Une entreprise vérifiée apparaît dans la liste des travailleurs, et son équipe RH voit les totaux des signalements anonymes.",
+    "waiting": "En attente",
+    "verified": "Vérifié",
+    "verifiedOn": "Vérifié le {{date}} par {{by}}",
+    "signedUp": "Inscrit le {{date}} · compte {{account}}",
+    "created": "Ajoutée le {{date}}",
+    "noName": "(pas encore de nom)",
+    "lawSociety": "Numéro du Barreau",
+    "where": "Lieu",
+    "email": "Courriel",
+    "phone": "Téléphone",
+    "website": "Site Web",
+    "inDirectory": "Dans le répertoire",
+    "listed": "Répertorié",
+    "notListed": "Non répertorié",
+    "notAccepting": "N'accepte pas de clients",
+    "hrAccounts": "Comptes RH",
+    "missing": "Encore vide : {{fields}}. Le cabinet ne sera pas répertorié tant qu'il ne les aura pas remplis.",
+    "fields": {
+      "description": "description",
+      "law_society_number": "numéro du Barreau"
+    },
+    "verify": "Vérifier",
+    "unverify": "Retirer la vérification",
+    "working": "Enregistrement…",
+    "unverifyTitle": "Retirer la vérification de {{name}}?",
+    "unverifyFirm": "Le cabinet disparaît de Trouver un avocat, ne peut plus accepter de demandes ni répondre aux messages jusqu'à une nouvelle vérification.",
+    "unverifyCompany": "Les travailleurs ne peuvent plus choisir cette entreprise ni lui faire de signalement, et son équipe RH perd le tableau de bord et la vérification des offres jusqu'à une nouvelle vérification.",
+    "allDone": "Rien en attente. Tout est à jour.",
+    "none": "Aucun résultat.",
+    "count": {
+      "firms_one": "{{count}} cabinet",
+      "firms_other": "{{count}} cabinets",
+      "companies_one": "{{count}} entreprise",
+      "companies_other": "{{count}} entreprises",
+      "workers_one": "{{count}} travailleur",
+      "workers_other": "{{count}} travailleurs",
+      "hr_one": "{{count}} compte RH",
+      "hr_other": "{{count}} comptes RH"
+    }
   }
 }

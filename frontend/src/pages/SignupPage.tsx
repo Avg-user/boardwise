@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { signup } from '../api/auth.ts'
 import { ApiError } from '../api/client.ts'
 import type { UserRole } from '../api/types.ts'
-import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import { getHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import { CURRENT_USER_KEY, queryClient } from '../queryClient.ts'
 
 const MIN_PASSWORD_LENGTH = 8
@@ -39,7 +39,7 @@ function SignupPage({ audience = 'worker' }: SignupPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (user && !isSubmitting) {
-    return <Navigate to={getRoleHome(user.role)} replace />
+    return <Navigate to={getHome(user)} replace />
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -68,7 +68,7 @@ function SignupPage({ audience = 'worker' }: SignupPageProps) {
         preferred_language: i18n.resolvedLanguage ?? 'en',
       })
       queryClient.setQueryData(CURRENT_USER_KEY, created)
-      navigate(created.role === 'law_firm' ? '/firm/profile' : getRoleHome(created.role), {
+      navigate(created.role === 'law_firm' ? '/firm/profile' : getHome(created), {
         replace: true,
       })
     } catch (caught) {

@@ -31,7 +31,7 @@ class CompanyOwnSerializer(serializers.ModelSerializer):
     def update(self, instance, data):
         # A new name is a new claim: staff check it again before HR sees reports.
         if "name" in data and data["name"].strip() != instance.name:
-            instance.is_verified, instance.verified_at = False, None
+            instance.unverify(save=False)
         return super().update(instance, data)
 
 

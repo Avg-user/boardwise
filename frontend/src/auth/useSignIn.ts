@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { login } from '../api/auth.ts'
 import { ApiError } from '../api/client.ts'
 import { CURRENT_USER_KEY, queryClient } from '../queryClient.ts'
-import { getRoleHome } from './useCurrentUser.ts'
+import { getHome } from './useCurrentUser.ts'
 
 /** Shared by the worker and partner sign-in pages. The account's role decides where it lands. */
 export function useSignIn() {
@@ -24,7 +24,7 @@ export function useSignIn() {
       const signedIn = await login(username.trim(), password)
       queryClient.setQueryData(CURRENT_USER_KEY, signedIn)
       const from: unknown = location.state?.from
-      navigate(typeof from === 'string' ? from : getRoleHome(signedIn.role), { replace: true })
+      navigate(typeof from === 'string' ? from : getHome(signedIn), { replace: true })
     } catch (caught) {
       setError(
         caught instanceof ApiError && caught.status === 400

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import LawFirmProfile, MatchRequest
+from .models import FirmMessage, FirmThread, LawFirmProfile, MatchRequest
 
 PUBLIC_FIELDS = [
     "id", "name", "tagline", "description", "practice_areas", "languages", "provinces", "city",
@@ -61,8 +61,7 @@ class LawFirmOwnSerializer(serializers.ModelSerializer):
         # A new law society number needs to be checked again before the firm is listed.
         number = data.get("law_society_number")
         if number is not None and number.strip() != instance.law_society_number:
-            instance.is_verified = False
-            instance.verified_at = None
+            instance.unverify(save=False)
         return super().update(instance, data)
 
 
@@ -103,3 +102,62 @@ class FirmMatchRequestSerializer(serializers.ModelSerializer):
 
     def get_case_title(self, obj):
         return obj.case.title if self._shared(obj) else None
+
+
+# --- Messages between workers and firms -------------------------------------------------------
+
+class FirmMessageSerializer(serializers.ModelSerializer):
+    mine = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FirmMessage
+        fields = ["id", "sender", "body", "created_at", "mine"]
+        read_only_fields = fields
+
+    def get_mine(self, obj) -> bool:
+        return obj.sender == self.context["side"]
+
+
+class FirmThreadSerializer(serializers.ModelSerializer):
+    """The firm sees no worker identity: no username, no ID, only what the worker wrote."""
+
+    firm_name = serializers.CharField(source="firm.name", read_only=True)
+    unread = serializers.BooleanField(read_only=True, default=False)
+    last_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FirmThread
+        fields = ["id", "firm", "firm_name", "subject", "created_at", "last_message_at", "unread", "last_message"]
+        read_only_fields = fields
+
+    def get_last_message(self, obj) -> dict | None:
+        last = obj.messages.order_by("-created_at").first()
+        if last is None:
+            return None
+        return {"sender": last.sender, "preview": last.body[:160], "mine": last.sender == self.context["side"]}
+
+
+class FirmThreadDetailSerializer(FirmThreadSerializer):
+    messages = serializers.SerializerMethodField()
+    can_reply = serializers.SerializerMethodField()
+
+    class Meta(FirmThreadSerializer.Meta):
+        fields = FirmThreadSerializer.Meta.fields + ["messages", "can_reply"]
+        read_only_fields = fields
+
+    def get_messages(self, obj) -> list[dict]:
+        return FirmMessageSerializer(obj.messages.all(), many=True, context=self.context).data
+
+    def get_can_reply(self, obj) -> bool:
+        # A firm that has lost its verification can't keep writing to workers.
+        return self.context["side"] == "worker" or obj.firm.is_verified
+
+
+class StartThreadSerializer(serializers.Serializer):
+    firm = serializers.PrimaryKeyRelatedField(queryset=LawFirmProfile.objects.listed())
+    subject = serializers.CharField(max_length=200, trim_whitespace=True)
+    body = serializers.CharField(max_length=5000, trim_whitespace=True)
+
+
+class ReplySerializer(serializers.Serializer):
+    body = serializers.CharField(max_length=5000, trim_whitespace=True)

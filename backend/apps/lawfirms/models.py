@@ -73,6 +73,8 @@ class LawFirmProfile(models.Model):
     law_society_number = models.CharField(max_length=50)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
 
     accepting_clients = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -85,6 +87,16 @@ class LawFirmProfile(models.Model):
 
     def __str__(self):
         return f"LawFirmProfile {self.pk}"
+
+    def verify(self, by):
+        """Staff only. Records who verified, for accountability."""
+        self.is_verified, self.verified_at, self.verified_by = True, timezone.now(), by
+        self.save(update_fields=["is_verified", "verified_at", "verified_by"])
+
+    def unverify(self, save=True):
+        self.is_verified, self.verified_at, self.verified_by = False, None, None
+        if save:
+            self.save(update_fields=["is_verified", "verified_at", "verified_by"])
 
 
 class MatchRequest(models.Model):
@@ -122,3 +134,44 @@ class MatchRequest(models.Model):
     def respond(self, status):
         self.status = status
         self.responded_at = timezone.now()
+
+
+class FirmThread(models.Model):
+    """A conversation between one worker and one firm. Only the worker can start it.
+
+    Separate from cases: nothing in a thread shares or reveals case data. The firm sees only
+    what the worker writes here, never their username.
+    """
+
+    worker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="firm_threads")
+    firm = models.ForeignKey(LawFirmProfile, on_delete=models.CASCADE, related_name="threads")
+    subject = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_message_at = models.DateTimeField(default=timezone.now)
+    # Unread = messages from the other side after these.
+    worker_read_at = models.DateTimeField(null=True, blank=True)
+    firm_read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-last_message_at"]
+        constraints = [models.UniqueConstraint(fields=["worker", "firm"], name="unique_firm_thread")]
+
+    def __str__(self):
+        return f"FirmThread {self.pk}"
+
+
+class FirmMessage(models.Model):
+    class Sender(models.TextChoices):
+        WORKER = "worker", "Worker"
+        FIRM = "firm", "Firm"
+
+    thread = models.ForeignKey(FirmThread, on_delete=models.CASCADE, related_name="messages")
+    sender = models.CharField(max_length=10, choices=Sender.choices)
+    body = models.TextField(max_length=5000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"FirmMessage {self.pk}"

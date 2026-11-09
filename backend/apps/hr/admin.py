@@ -22,11 +22,11 @@ class CompanyAdmin(admin.ModelAdmin):
 
     @admin.action(description="Mark as verified (HR contact checked)")
     def verify(self, request, queryset):
-        queryset.update(is_verified=True, verified_at=timezone.now())
+        queryset.update(is_verified=True, verified_at=timezone.now(), verified_by=request.user)
 
     @admin.action(description="Remove verification")
     def unverify(self, request, queryset):
-        queryset.update(is_verified=False, verified_at=None)
+        queryset.update(is_verified=False, verified_at=None, verified_by=None)
 
 
 @admin.register(JobOffer)

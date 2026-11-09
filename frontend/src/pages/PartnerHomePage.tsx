@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { listCases } from '../api/cases.ts'
 import { getMyProfile, listFirmRequests } from '../api/lawfirms.ts'
+import { UNREAD_KEY, unreadCount } from '../api/messages.ts'
 import FirmRequests from '../components/lawfirms/FirmRequests.tsx'
 import { ProfileStatus } from './FirmProfilePage.tsx'
 
@@ -55,6 +56,7 @@ function FirmStats() {
   const { t } = useTranslation()
   const requests = useQuery({ queryKey: ['lawfirms', 'me', 'requests'], queryFn: listFirmRequests })
   const cases = useQuery({ queryKey: ['cases'], queryFn: listCases })
+  const unread = useQuery({ queryKey: UNREAD_KEY, queryFn: unreadCount })
   if (!requests.data || !cases.data) return null
   const pending = requests.data.filter((item) => item.status === 'pending').length
   const accepted = requests.data.filter((item) => item.status === 'accepted').length
@@ -71,6 +73,12 @@ function FirmStats() {
       <div className="stat-tile">
         <dt>{t('partnerHome.firm.accepted')}</dt>
         <dd>{accepted}</dd>
+      </div>
+      <div className={`stat-tile${unread.data ? ' stat-tile--attention' : ''}`}>
+        <dt>
+          <Link to="/messages">{t('partnerHome.firm.unreadMessages')}</Link>
+        </dt>
+        <dd>{unread.data ?? 0}</dd>
       </div>
     </dl>
   )

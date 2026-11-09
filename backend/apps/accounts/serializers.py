@@ -6,8 +6,9 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ["id", "username", "role", "preferred_language"]
-        read_only_fields = ["id", "username", "role"]
+        # is_staff: Boardwise staff, who use the staff tools (/staff in the app).
+        fields = ["id", "username", "role", "preferred_language", "is_staff"]
+        read_only_fields = ["id", "username", "role", "is_staff"]
 
 
 class LoginSerializer(serializers.Serializer):
