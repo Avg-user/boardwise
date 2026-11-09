@@ -13,13 +13,21 @@ export type TranscriptLabels = {
   you: string
   assistant: string
   sources: string
+  nextSteps: string
+  noNextSteps: string
+  due: (date: string) => string
   page: (page: number, total: number) => string
 }
+
+/** One item from the issue's checklist. `due` is already formatted for display. */
+export type TranscriptStep = { title: string; notes: string; due: string | null; done: boolean }
 
 export type TranscriptInput = {
   caseTitle: string
   startedAt: string
   messages: ChatMessage[]
+  /** The issue's checklist, printed before the conversation. */
+  nextSteps: TranscriptStep[]
   formatDateTime: (iso: string) => string
   labels: TranscriptLabels
 }
@@ -242,11 +250,26 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
     indent?: number
     /** Drawn in the indent before the first line only, such as a bullet or number. */
     marker?: string
+    /** A checkbox in the indent before the first line, ticked when done. */
+    box?: 'open' | 'done'
+  }
+
+  function drawCheckbox(left: number, top: number, side: number, done: boolean, color: Rgb) {
+    doc.setDrawColor(color[0], color[1], color[2])
+    doc.setLineWidth(0.9)
+    doc.rect(left, top, side, side, 'S')
+    if (done) {
+      doc.setLineWidth(1.3)
+      doc.setLineCap('round')
+      doc.line(left + side * 0.2, top + side * 0.55, left + side * 0.42, top + side * 0.78)
+      doc.line(left + side * 0.42, top + side * 0.78, left + side * 0.82, top + side * 0.22)
+      doc.setLineCap('butt')
+    }
   }
 
   function writeRuns(
     runs: Run[],
-    { size = 11, bold = false, italic = false, color = TEXT, after = 4, indent = 0, marker }: WriteOptions = {},
+    { size = 11, bold = false, italic = false, color = TEXT, after = 4, indent = 0, marker, box }: WriteOptions = {},
   ) {
     const lineHeight = size * 1.4
     layout(runs, width - indent, size, { bold, italic }).forEach((line, index) => {
@@ -256,6 +279,11 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
       if (marker && index === 0) {
         doc.setFont('helvetica', 'normal')
         doc.text(pdfSafe(marker), MARGIN + indent - 14, y + size)
+      }
+      if (box && index === 0) {
+        // Sized to the capitals and sitting on the baseline, like a character would.
+        const side = size * 0.78
+        drawCheckbox(MARGIN + indent - side - 7, y + size - side + 0.5, side, box === 'done', color)
       }
       drawLine(line, MARGIN + indent, y + size, size)
       y += lineHeight
@@ -428,6 +456,27 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
   write(`${labels.started}: ${input.formatDateTime(input.startedAt)}`, { size: 10, color: MUTED, after: 2 })
   write(`${labels.exported}: ${input.formatDateTime(new Date().toISOString())}`, { size: 10, color: MUTED, after: 10 })
   write(labels.notice, { size: 10, color: MUTED, after: 12 })
+  rule()
+
+  // The issue's checklist comes first, so whoever reads this sees what's planned before the
+  // whole conversation. Steps still to do come before finished ones.
+  write(labels.nextSteps, { size: 13, bold: true, after: 6 })
+  if (input.nextSteps.length === 0) {
+    write(labels.noNextSteps, { italic: true, color: MUTED, after: 8 })
+  } else {
+    const steps = [...input.nextSteps.filter((step) => !step.done), ...input.nextSteps.filter((step) => step.done)]
+    for (const step of steps) {
+      const notes = step.notes.trim()
+      writeRuns([{ text: step.title }, ...(step.due ? [{ text: ` · ${labels.due(step.due)}` }] : [])], {
+        indent: 18,
+        box: step.done ? 'done' : 'open',
+        color: step.done ? MUTED : TEXT,
+        after: notes ? 1 : 5,
+      })
+      if (notes) write(notes, { size: 9.5, color: MUTED, indent: 18, after: 5 })
+    }
+    y += 3
+  }
   rule()
 
   for (const message of input.messages) {

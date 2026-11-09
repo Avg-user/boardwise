@@ -206,7 +206,8 @@
     "tabs": {
       "chat": "Chat",
       "timeline": "Timeline",
-      "steps": "Next steps"
+      "steps": "Next steps",
+      "lawyers": "Lawyers"
     },
     "backPartner": "Back to dashboard",
     "openBadge": "Open",
@@ -270,7 +271,10 @@
     "closedElsewhere": "This chat was closed, maybe on another device. Your message is still in the box: send it to start a new chat."
   },
   "transcript": {
-    "download": "Download transcript",
+    "download": "Download PDF",
+    "nextSteps": "Next steps for this issue",
+    "noNextSteps": "No next steps saved for this issue yet.",
+    "due": "due {{date}}",
     "preparing": "Preparing…",
     "failed": "The transcript couldn't be created. Try again.",
     "heading": "Chat Transcript",
