@@ -109,6 +109,24 @@ class LegalTermsTests(TestCase):
         self.assertIn("compensation claim", _legal_terms("Can I file a WCB claim?"))
         self.assertEqual(_legal_terms("termination notice"), "termination notice")
 
+    def test_maps_plain_words_for_injury_pay_overtime_refusal_and_harassment(self):
+        from .retrieval import _legal_terms
+        self.assertIn("injury accident compensation claim", _legal_terms("I hurt my back at work"))
+        self.assertIn("earnings when employment terminates", _legal_terms("They haven't paid my last cheque"))
+        self.assertIn("overtime hours", _legal_terms("Do I get paid for the extra hours?"))
+        self.assertIn("earnings when employment terminates", _legal_terms("No paycheque after I quit"))
+        self.assertIn("earnings when employment terminates", _legal_terms("No paycheque after I was fired"))
+        self.assertIn("refuse dangerous work", _legal_terms("Roof work with no harness. Can I say no?"))
+        self.assertIn("refuse dangerous work", _legal_terms("Can I say no if it's unsafe?"))
+        self.assertIn("yelling harassment", _legal_terms("My boss keeps yelling at me"))
+        self.assertIn("harassment", _legal_terms("He keeps calling me names"))
+        # Same words, other topics: no termination, refusal, harassment or injury terms
+        self.assertEqual(_legal_terms("My paycheque is always late"), "My paycheque is always late")
+        self.assertNotIn("refuse", _legal_terms("Can I say no to overtime?"))
+        self.assertNotIn("harassment", _legal_terms("My boss keeps calling me after hours"))
+        self.assertNotIn("injury", _legal_terms("He hurt my feelings"))
+        self.assertNotIn("injury", _legal_terms("it would hurt her career"))  # a threat, not an injury
+
     def test_threats_add_disciplinary_action_and_keep_the_word(self):
         from .retrieval import _legal_terms
         q = _legal_terms("A supervisor texted her saying it would hurt her career")

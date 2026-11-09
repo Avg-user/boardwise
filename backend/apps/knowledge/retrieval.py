@@ -32,6 +32,19 @@ _LEGAL_TERMS = [
     # Kept, not replaced: "threat of violence" must still find the violence sections.
     (re.compile(r"\b(threat\w*|intimidat\w*|hurt (?:her|his|my|their) career)\b", re.I),
      r"\g<0> disciplinary action"),
+    (re.compile(r"\b(?:hurt|injured)\b(?!\s+(?:her|his|my|their)\s+(?:career|feelings))", re.I),
+     r"\g<0> injury accident compensation claim"),
+    # A bare "paycheque" isn't about leaving; "fired"/"let go" were already rewritten above.
+    (re.compile(r"\b(?:(?:last|final) (?:pay ?)?cheque|(?:last|final) pay"
+                r"|paycheque(?= after (?:i|we) (?:quit|left|resigned|(?:was|got) (?:fired|termination))))\b", re.I),
+     "earnings when employment terminates pay period"),
+    (re.compile(r"\b(?:extra|more) hours\b", re.I), "overtime hours"),
+    # Only a safety question: "say no to overtime" must not pull in the refusal sections.
+    (re.compile(r"^(?=.*\b(?:unsafe|safe|safety|danger|dangerous|hazards?|hazardous|risks?|risky|harness)\b)"
+                r"(.*?)\bsay no\b", re.I | re.S),
+     r"\1refuse dangerous work"),
+    (re.compile(r"\b(?:yell\w*|scream\w*|bull(?:y|ied|ies|ying)|insult\w*|swear\w* at|calling me names)\b", re.I),
+     r"\g<0> harassment"),
 ]
 
 

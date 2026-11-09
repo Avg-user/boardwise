@@ -73,7 +73,7 @@ cd backend
 .venv/bin/python manage.py seed_demo                   # add --reset to rebuild; refuses unless DEBUG=True
 .venv/bin/python manage.py runserver
 ```
-Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed), `newhr` (its company "Riverside Care Homes" waits for verification) and `staff` (Boardwise staff: the Verification page). The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request. `hr` manages the verified company "Northwind Logistics" (sample reports and one reviewed job offer); `victim` works there with reporting turned on.
+Demo logins (password `demo1234`): `JohnDoe` (worker), `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed), `newhr` (its company "Riverside Care Homes" waits for verification) and `staff` (Boardwise staff: the Verification page). The seeded case belongs to `JohnDoe`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request. `hr` manages the verified company "Northwind Logistics" (sample reports and one reviewed job offer); `JohnDoe` works there with reporting turned on.
 
 Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down before deploying).
 
@@ -168,7 +168,7 @@ All endpoints require authentication.
 - Retrieval (`retrieval.py`):
   - Hybrid search filtered by province: Postgres full-text + pgvector cosine, merged with reciprocal rank fusion. Returns the top `RAG_TOP_K`.
   - Full-text weights each query term by its rarity in the province (IDF), so "noise" beats "health"/"safety" in an OHS question.
-  - Before full-text search, `_legal_terms` swaps everyday words for the law's wording (fired → termination/disciplinary action, reprisal → disciplinary action, SDS, WCB, mask). "Fired" otherwise stems to "fire" and pulls in fire-hazard sections.
+  - Before full-text search, `_legal_terms` swaps everyday words for the law's wording (fired → termination/disciplinary action, reprisal → disciplinary action, SDS, WCB, mask, hurt → injury/compensation claim (not "hurt my feelings/career"), last cheque → earnings when employment terminates, extra hours → overtime, say no → refuse dangerous work (only with a safety word), yelling/bullying/calling me names → harassment). "Fired" otherwise stems to "fire" and pulls in fire-hazard sections.
   - Then expands one hop along reference edges (at most `MAX_LINKED` = 2 extra sections).
   - Falls back to full-text only when there are no embeddings or embedding fails.
 - If a province has no ingested chunks, the whole `<CODE>.md` file is used instead.

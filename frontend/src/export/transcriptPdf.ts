@@ -48,13 +48,14 @@ function pdfSafe(text: string): string {
     .replace(/[^\n\t -~¡-ÿ]/gu, (char) => (WIN_ANSI_EXTRAS.includes(char) ? char : '?'))
 }
 
-// Page layout, in points. Colours match the app: paper background, ink text, hairlines.
+// Page layout, in points. Black and white so it prints cleanly: white page, black text
+// (secondary text is black too, just smaller), grey only for hairlines and table headers.
 const MARGIN = 56
-const PAPER = [241, 238, 230] as const
-const TEXT = [26, 27, 30] as const
-const MUTED = [89, 86, 78] as const
-const HAIRLINE = [211, 206, 192] as const
-const TABLE_HEAD = [231, 226, 214] as const
+const PAPER = [255, 255, 255] as const
+const TEXT = [0, 0, 0] as const
+const MUTED = [0, 0, 0] as const
+const HAIRLINE = [150, 150, 150] as const
+const TABLE_HEAD = [230, 230, 230] as const
 const CARD = [255, 255, 255] as const
 
 type Rgb = readonly [number, number, number]
@@ -67,7 +68,7 @@ type Line = Word[]
 const fontStyle = (bold: boolean, italic: boolean): FontStyle =>
   bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal'
 
-/** The Boardwise owl's head, drawn with shapes so it stays sharp. `size` is its height. */
+/** The Boardwise owl's head in greys, drawn with shapes so it stays sharp. `size` is its height. */
 function drawOwl(doc: jsPDF, left: number, top: number, size: number) {
   // The shapes come from the app's owl (components/brand/Owl.tsx), whose head fills the box 14 2 92 84.
   const scale = size / 84
@@ -75,12 +76,12 @@ function drawOwl(doc: jsPDF, left: number, top: number, size: number) {
   const y = (value: number) => top + (value - 2) * scale
   const fill = (rgb: Rgb) => doc.setFillColor(rgb[0], rgb[1], rgb[2])
 
-  fill([138, 106, 75]) // feathers
+  fill([110, 110, 110]) // feathers
   doc.triangle(x(22), y(30), x(27), y(6), x(44), y(22), 'F')
   doc.triangle(x(98), y(30), x(93), y(6), x(76), y(22), 'F')
   doc.ellipse(x(60), y(48), 42 * scale, 34 * scale, 'F')
   // Brows: quadratic curves, drawn as the equivalent cubic ones.
-  doc.setDrawColor(107, 79, 54)
+  doc.setDrawColor(40, 40, 40)
   doc.setLineWidth(3 * scale)
   doc.setLineCap('round')
   for (const [x0, y0, cx, cy, x1, y1] of [
@@ -99,16 +100,16 @@ function drawOwl(doc: jsPDF, left: number, top: number, size: number) {
     )
   }
   doc.setLineCap('butt')
-  fill([246, 238, 220]) // face discs
+  fill([240, 240, 240]) // face discs
   doc.circle(x(43), y(50), 17 * scale, 'F')
   doc.circle(x(77), y(50), 17 * scale, 'F')
-  fill([29, 26, 22]) // eyes
+  fill([0, 0, 0]) // eyes
   doc.circle(x(43), y(50), 8.5 * scale, 'F')
   doc.circle(x(77), y(50), 8.5 * scale, 'F')
   fill([255, 255, 255])
   doc.circle(x(46), y(47), 2.6 * scale, 'F')
   doc.circle(x(80), y(47), 2.6 * scale, 'F')
-  fill([255, 198, 41]) // beak
+  fill([170, 170, 170]) // beak
   doc.triangle(x(54.5), y(60), x(65.5), y(60), x(60), y(71), 'F')
 }
 
@@ -411,12 +412,14 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
 
   paintPage()
   // Letterhead: the owl and the name, like the app's header.
-  const owlSize = 30
+  const owlSize = 40
+  const nameSize = 26
   drawOwl(doc, MARGIN, y, owlSize)
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
+  doc.setFontSize(nameSize)
   doc.setTextColor(TEXT[0], TEXT[1], TEXT[2])
-  doc.text('Boardwise', MARGIN + owlSize * (92 / 84) + 8, y + owlSize / 2 + 5)
+  // Baseline placed so the capitals sit centred on the owl (Helvetica caps are ~0.72 em tall).
+  doc.text('Boardwise', MARGIN + owlSize * (92 / 84) + 10, y + owlSize / 2 + nameSize * 0.36)
   y += owlSize + 18
 
   const { labels } = input

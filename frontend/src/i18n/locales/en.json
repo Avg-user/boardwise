@@ -21,7 +21,7 @@
     "signedInAs": "Signed in as"
   },
   "quickExit": {
-    "label": "Quick exit",
+    "label": "Quick Exit",
     "hint": "Leave this site right away and sign out. You can also press Esc twice."
   },
   "lock": {
@@ -51,8 +51,8 @@
     "done": "Done"
   },
   "nav": {
-    "issues": "My issues",
-    "lawyers": "Find a lawyer",
+    "issues": "My Issues",
+    "lawyers": "Find a Lawyer",
     "hr": "Reports",
     "firm": "Dashboard",
     "portal": {
@@ -100,7 +100,7 @@
     "taglineNote": "If yours isn't, we'll help you do something about it."
   },
   "cases": {
-    "title": "My issues",
+    "title": "My Issues",
     "description": "Keep track of each workplace issue in one private place.",
     "empty": "You don't have any issues yet.",
     "updated": "Updated",
@@ -118,7 +118,7 @@
       "label": "Help and resources",
       "lawyerTitle": "Talk to a lawyer",
       "lawyerText": "Browse verified firms. A firm only sees an issue if you choose to share it.",
-      "lawyerLink": "Find a lawyer",
+      "lawyerLink": "Find a Lawyer",
       "urgentTitle": "Need help now?",
       "privacyTitle": "Your issues are private",
       "privacyText": "Only you can see them, unless you share one with a firm. You can stop sharing at any time.",
@@ -273,7 +273,7 @@
     "download": "Download transcript",
     "preparing": "Preparing…",
     "failed": "The transcript couldn't be created. Try again.",
-    "heading": "Chat transcript",
+    "heading": "Chat Transcript",
     "issue": "Issue",
     "started": "Chat started",
     "exported": "Exported",
@@ -351,7 +351,7 @@
   },
   "lawyers": {
     "eyebrow": "Verified law firms",
-    "title": "Find a lawyer",
+    "title": "Find a Lawyer",
     "description": "Browse firms that help workers. They only see your case if you ask to connect and they accept.",
     "filters": {
       "search": "Search by name or city",
@@ -427,7 +427,7 @@
   "matches": {
     "title": "Lawyers",
     "none": "You haven't asked a firm to look at this issue.",
-    "find": "Find a lawyer",
+    "find": "Find a Lawyer",
     "withdraw": "Withdraw",
     "stopSharing": "Stop sharing",
     "status": {
@@ -654,7 +654,7 @@
     "title": "Messages",
     "description": "Your conversations with law firms. Firms see only what you write here, never your username or your issues.",
     "firmDescription": "Messages from workers. You see only what they write, not who they are, until they choose to tell you or share an issue.",
-    "findFirm": "Find a lawyer",
+    "findFirm": "Find a Lawyer",
     "empty": "No messages yet. Open a firm's page in Find a lawyer to write to them.",
     "emptyFirm": "No messages yet. Workers can write to your firm once it's listed.",
     "aWorker": "A worker",
