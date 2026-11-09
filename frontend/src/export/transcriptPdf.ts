@@ -1,7 +1,8 @@
 // Builds a chat transcript PDF in the browser. Nothing is sent to a server.
 // jsPDF is loaded only when someone exports, so it doesn't slow down the app.
+import type { jsPDF } from 'jspdf'
 import type { ChatMessage } from '../api/types.ts'
-import { markdownToBlocks } from './markdownText.ts'
+import { markdownToBlocks, runsText, type Run } from './markdownText.ts'
 
 export type TranscriptLabels = {
   heading: string
@@ -47,23 +48,194 @@ function pdfSafe(text: string): string {
     .replace(/[^\n\t -~¡-ÿ]/gu, (char) => (WIN_ANSI_EXTRAS.includes(char) ? char : '?'))
 }
 
+// Page layout, in points. Colours match the app: paper background, ink text, hairlines.
 const MARGIN = 56
+const PAPER = [241, 238, 230] as const
 const TEXT = [26, 27, 30] as const
 const MUTED = [89, 86, 78] as const
+const HAIRLINE = [211, 206, 192] as const
+const TABLE_HEAD = [231, 226, 214] as const
+const CARD = [255, 255, 255] as const
+
+type Rgb = readonly [number, number, number]
+type FontStyle = 'normal' | 'bold' | 'italic' | 'bolditalic'
+type Piece = { text: string; style: FontStyle; width: number }
+/** Pieces with no space between them, such as "**bold**," (a bold word, then a comma). */
+type Word = { pieces: Piece[]; width: number }
+type Line = Word[]
+
+const fontStyle = (bold: boolean, italic: boolean): FontStyle =>
+  bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal'
+
+/** The Boardwise owl's head, drawn with shapes so it stays sharp. `size` is its height. */
+function drawOwl(doc: jsPDF, left: number, top: number, size: number) {
+  // The shapes come from the app's owl (components/brand/Owl.tsx), whose head fills the box 14 2 92 84.
+  const scale = size / 84
+  const x = (value: number) => left + (value - 14) * scale
+  const y = (value: number) => top + (value - 2) * scale
+  const fill = (rgb: Rgb) => doc.setFillColor(rgb[0], rgb[1], rgb[2])
+
+  fill([138, 106, 75]) // feathers
+  doc.triangle(x(22), y(30), x(27), y(6), x(44), y(22), 'F')
+  doc.triangle(x(98), y(30), x(93), y(6), x(76), y(22), 'F')
+  doc.ellipse(x(60), y(48), 42 * scale, 34 * scale, 'F')
+  // Brows: quadratic curves, drawn as the equivalent cubic ones.
+  doc.setDrawColor(107, 79, 54)
+  doc.setLineWidth(3 * scale)
+  doc.setLineCap('round')
+  for (const [x0, y0, cx, cy, x1, y1] of [
+    [30, 30, 44, 22, 58, 32],
+    [90, 30, 76, 22, 62, 32],
+  ]) {
+    const c1 = [x0 + ((cx - x0) * 2) / 3, y0 + ((cy - y0) * 2) / 3]
+    const c2 = [x1 + ((cx - x1) * 2) / 3, y1 + ((cy - y1) * 2) / 3]
+    doc.lines(
+      [[(c1[0] - x0) * scale, (c1[1] - y0) * scale, (c2[0] - x0) * scale, (c2[1] - y0) * scale, (x1 - x0) * scale, (y1 - y0) * scale]],
+      x(x0),
+      y(y0),
+      [1, 1],
+      'S',
+      false,
+    )
+  }
+  doc.setLineCap('butt')
+  fill([246, 238, 220]) // face discs
+  doc.circle(x(43), y(50), 17 * scale, 'F')
+  doc.circle(x(77), y(50), 17 * scale, 'F')
+  fill([29, 26, 22]) // eyes
+  doc.circle(x(43), y(50), 8.5 * scale, 'F')
+  doc.circle(x(77), y(50), 8.5 * scale, 'F')
+  fill([255, 255, 255])
+  doc.circle(x(46), y(47), 2.6 * scale, 'F')
+  doc.circle(x(80), y(47), 2.6 * scale, 'F')
+  fill([255, 198, 41]) // beak
+  doc.triangle(x(54.5), y(60), x(65.5), y(60), x(60), y(71), 'F')
+}
 
 export async function downloadTranscript(input: TranscriptInput, filename: string) {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
-  const width = doc.internal.pageSize.getWidth() - MARGIN * 2
-  const bottom = doc.internal.pageSize.getHeight() - MARGIN
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const width = pageWidth - MARGIN * 2
+  const bottom = pageHeight - MARGIN
   let y = MARGIN
+
+  function paintPage() {
+    doc.setFillColor(PAPER[0], PAPER[1], PAPER[2])
+    doc.rect(0, 0, pageWidth, pageHeight, 'F')
+  }
+
+  function newPage() {
+    doc.addPage()
+    paintPage()
+    y = MARGIN
+  }
+
+  // --- Text layout --------------------------------------------------------------------------
+  // jsPDF wraps plain strings only, so styled text is measured and wrapped here, word by word.
+  // The built-in Helvetica covers English and French. Scripts outside Latin-1 would need an embedded font.
+
+  function measure(text: string, style: FontStyle, size: number) {
+    doc.setFont('helvetica', style)
+    doc.setFontSize(size)
+    return doc.getTextWidth(text)
+  }
+
+  /** Splits runs into words and hard line breaks. A word too long for the line is cut into pieces that fit. */
+  function toWords(runs: Run[], size: number, base: { bold?: boolean; italic?: boolean }, maxWidth: number) {
+    const tokens: (Word | 'break')[] = []
+    let word: Word | null = null
+    const endWord = () => {
+      if (word) tokens.push(word)
+      word = null
+    }
+    for (const run of runs) {
+      const style = fontStyle(Boolean(base.bold || run.bold), Boolean(base.italic || run.italic))
+      for (const part of pdfSafe(run.text).split(/(\n|[ \t]+)/)) {
+        if (part === '\n') {
+          endWord()
+          tokens.push('break')
+        } else if (/^[ \t]+$/.test(part)) {
+          endWord()
+        } else if (part) {
+          const pieceWidth = measure(part, style, size)
+          word ??= { pieces: [], width: 0 }
+          word.pieces.push({ text: part, style, width: pieceWidth })
+          word.width += pieceWidth
+        }
+      }
+    }
+    endWord()
+
+    // Cut words wider than the line, such as long web addresses, into pieces that fit.
+    return tokens.flatMap((token): (Word | 'break')[] => {
+      if (token === 'break' || token.width <= maxWidth) return [token]
+      const parts: Word[] = []
+      let current: Word = { pieces: [], width: 0 }
+      for (const piece of token.pieces) {
+        for (const char of piece.text) {
+          const charWidth = measure(char, piece.style, size)
+          if (current.width + charWidth > maxWidth && current.width > 0) {
+            parts.push(current)
+            current = { pieces: [], width: 0 }
+          }
+          const last = current.pieces[current.pieces.length - 1]
+          if (last?.style === piece.style) {
+            last.text += char
+            last.width += charWidth
+          } else {
+            current.pieces.push({ text: char, style: piece.style, width: charWidth })
+          }
+          current.width += charWidth
+        }
+      }
+      if (current.width > 0) parts.push(current)
+      return parts
+    })
+  }
+
+  function layout(runs: Run[], maxWidth: number, size: number, base: { bold?: boolean; italic?: boolean } = {}): Line[] {
+    const space = measure(' ', 'normal', size)
+    const lines: Line[] = []
+    let line: Line = []
+    let lineWidth = 0
+    for (const token of toWords(runs, size, base, maxWidth)) {
+      if (token === 'break') {
+        lines.push(line)
+        line = []
+        lineWidth = 0
+      } else if (line.length > 0 && lineWidth + space + token.width > maxWidth) {
+        lines.push(line)
+        line = [token]
+        lineWidth = token.width
+      } else {
+        lineWidth += (line.length > 0 ? space : 0) + token.width
+        line.push(token)
+      }
+    }
+    if (line.length > 0 || lines.length === 0) lines.push(line)
+    return lines
+  }
+
+  function drawLine(line: Line, left: number, baseline: number, size: number) {
+    const space = measure(' ', 'normal', size)
+    let x = left
+    line.forEach((word, index) => {
+      if (index > 0) x += space
+      for (const piece of word.pieces) {
+        doc.setFont('helvetica', piece.style)
+        doc.text(piece.text, x, baseline)
+        x += piece.width
+      }
+    })
+  }
 
   type WriteOptions = {
     size?: number
     bold?: boolean
     italic?: boolean
-    mono?: boolean
-    color?: readonly [number, number, number]
+    color?: Rgb
     after?: number
     /** Left indent in points. */
     indent?: number
@@ -71,48 +243,162 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
     marker?: string
   }
 
-  // The built-in Helvetica covers English and French. Scripts outside Latin-1 would need an embedded font.
-  function write(
-    text: string,
-    { size = 11, bold = false, italic = false, mono = false, color = TEXT, after = 4, indent = 0, marker }: WriteOptions = {},
+  function writeRuns(
+    runs: Run[],
+    { size = 11, bold = false, italic = false, color = TEXT, after = 4, indent = 0, marker }: WriteOptions = {},
   ) {
-    const style = bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal'
-    doc.setFont(mono ? 'courier' : 'helvetica', style)
-    doc.setFontSize(size)
-    doc.setTextColor(color[0], color[1], color[2])
     const lineHeight = size * 1.4
-    const lines = doc.splitTextToSize(pdfSafe(text), width - indent) as string[]
-    lines.forEach((line, index) => {
-      if (y + lineHeight > bottom) {
-        doc.addPage()
-        y = MARGIN
+    layout(runs, width - indent, size, { bold, italic }).forEach((line, index) => {
+      if (y + lineHeight > bottom) newPage()
+      doc.setFontSize(size)
+      doc.setTextColor(color[0], color[1], color[2])
+      if (marker && index === 0) {
+        doc.setFont('helvetica', 'normal')
+        doc.text(pdfSafe(marker), MARGIN + indent - 14, y + size)
       }
-      if (marker && index === 0) doc.text(marker, MARGIN + indent - 14, y + size)
-      doc.text(line, MARGIN + indent, y + size)
+      drawLine(line, MARGIN + indent, y + size, size)
       y += lineHeight
     })
     y += after
   }
 
-  /** The assistant's reply, with Markdown turned into plain, structured text. */
+  const write = (text: string, options?: WriteOptions) => writeRuns([{ text }], options)
+
+  /** Code keeps its spacing, in a fixed-width font. */
+  function writeCode(text: string) {
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(9.5)
+    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2])
+    const lineHeight = 9.5 * 1.4
+    for (const line of doc.splitTextToSize(pdfSafe(text), width - 12) as string[]) {
+      if (y + lineHeight > bottom) newPage()
+      doc.setFont('courier', 'normal')
+      doc.text(line, MARGIN + 12, y + 9.5)
+      y += lineHeight
+    }
+    y += 6
+  }
+
+  function rule() {
+    doc.setDrawColor(HAIRLINE[0], HAIRLINE[1], HAIRLINE[2])
+    doc.setLineWidth(0.75)
+    doc.line(MARGIN, y, MARGIN + width, y)
+    y += 14
+  }
+
+  // --- Tables -------------------------------------------------------------------------------
+
+  const CELL_SIZE = 9.5
+  const CELL_LINE = CELL_SIZE * 1.35
+  const CELL_PAD = 6
+
+  /** A table as a grid, or, when its columns can't fit side by side, as label/value lines per row. */
+  function writeTable(header: Run[][], rows: Run[][][]) {
+    const columns = header.length
+    // Each column's width on one line, and the width of its longest word (it can't be narrower).
+    const natural = header.map(() => 0)
+    const minimum = header.map(() => 0)
+    for (const [rowIndex, row] of [header, ...rows].entries()) {
+      row.forEach((cell, column) => {
+        for (const line of layout(cell, Infinity, CELL_SIZE, { bold: rowIndex === 0 })) {
+          const words = line.map((word) => word.width)
+          const lineWidth = words.reduce((sum, w) => sum + w, 0) + Math.max(words.length - 1, 0) * measure(' ', 'normal', CELL_SIZE)
+          natural[column] = Math.max(natural[column], lineWidth + CELL_PAD * 2)
+          minimum[column] = Math.max(minimum[column], ...words.map((w) => w + CELL_PAD * 2))
+        }
+      })
+    }
+    const minimumTotal = minimum.reduce((sum, w) => sum + w, 0)
+    if (columns > 4 || minimumTotal > width || width / columns < 72) {
+      writeTableAsLines(header, rows)
+      return
+    }
+
+    // Share the width out: fill the line when everything fits, otherwise give each column its
+    // minimum plus a share of what's left, in proportion to how much more it would like.
+    const naturalTotal = natural.reduce((sum, w) => sum + w, 0)
+    const widths =
+      naturalTotal <= width
+        ? natural.map((w) => (w / naturalTotal) * width)
+        : minimum.map((w, column) => w + ((width - minimumTotal) * (natural[column] - w)) / (naturalTotal - minimumTotal))
+
+    const rowLines = (row: Run[][], bold: boolean) =>
+      row.map((cell, column) => layout(cell, widths[column] - CELL_PAD * 2, CELL_SIZE, { bold }))
+    const rowHeight = (lines: Line[][]) => Math.max(...lines.map((cell) => cell.length)) * CELL_LINE + CELL_PAD * 2
+
+    function drawRow(lines: Line[][], fillColor: Rgb) {
+      const height = rowHeight(lines)
+      let x = MARGIN
+      doc.setDrawColor(HAIRLINE[0], HAIRLINE[1], HAIRLINE[2])
+      doc.setLineWidth(0.5)
+      doc.setFontSize(CELL_SIZE)
+      lines.forEach((cell, column) => {
+        // Set for every cell: drawing text changes the PDF's fill colour to the text colour.
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2])
+        doc.rect(x, y, widths[column], height, 'FD')
+        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2])
+        cell.forEach((line, index) => drawLine(line, x + CELL_PAD, y + CELL_PAD + index * CELL_LINE + CELL_SIZE, CELL_SIZE))
+        x += widths[column]
+      })
+      y += height
+    }
+
+    const headerLines = rowLines(header, true)
+    const firstRow = rows.length > 0 ? rowHeight(rowLines(rows[0], false)) : 0
+    // Don't leave the header alone at the bottom of a page.
+    if (y + rowHeight(headerLines) + firstRow > bottom && y > MARGIN) newPage()
+    drawRow(headerLines, TABLE_HEAD)
+    for (const row of rows) {
+      const lines = rowLines(row, false)
+      if (y + rowHeight(lines) > bottom && y > MARGIN) {
+        // Carry on over the page, repeating the header.
+        newPage()
+        drawRow(headerLines, TABLE_HEAD)
+      }
+      drawRow(lines, CARD)
+    }
+    y += 10
+  }
+
+  /** Each row as a short group of "Header: value" lines, for tables too wide for the page. */
+  function writeTableAsLines(header: Run[][], rows: Run[][][]) {
+    for (const row of rows) {
+      let first = true
+      row.forEach((cell, column) => {
+        if (!runsText(cell).trim()) return
+        const label = runsText(header[column]).trim()
+        const runs = label ? [{ text: `${label}: `, bold: true }, ...cell] : cell
+        writeRuns(runs, { indent: 18, marker: first ? '•' : undefined, after: 1 })
+        first = false
+      })
+      y += 6
+    }
+    y += 4
+  }
+
+  /** The assistant's reply, with its Markdown laid out. */
   function writeMarkdown(markdown: string) {
     for (const block of markdownToBlocks(markdown)) {
       switch (block.kind) {
         case 'heading':
           y += 2
-          write(block.text, { bold: true, after: 4 })
+          writeRuns(block.runs, { size: 12, bold: true, after: 4 })
           break
         case 'paragraph':
-          write(block.text, { after: 6 })
+          writeRuns(block.runs, { after: 6 })
           break
         case 'item':
-          write(block.text, { indent: 18 + block.level * 16, marker: block.marker, after: 3 })
+          writeRuns(block.runs, { indent: 18 + block.level * 16, marker: block.marker, after: 3 })
           break
         case 'quote':
-          write(block.text, { italic: true, color: MUTED, indent: 16, after: 6 })
+          writeRuns(block.runs, { italic: true, color: MUTED, indent: 16, after: 6 })
           break
         case 'code':
-          write(block.text, { mono: true, size: 9.5, indent: 12, after: 6 })
+          writeCode(block.text)
+          break
+        case 'table':
+          y += 2
+          writeTable(block.header, block.rows)
           break
         case 'rule':
           rule()
@@ -121,15 +407,21 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
     }
   }
 
-  function rule() {
-    doc.setDrawColor(211, 206, 192)
-    doc.line(MARGIN, y, MARGIN + width, y)
-    y += 14
-  }
+  // --- The document ---------------------------------------------------------------------------
+
+  paintPage()
+  // Letterhead: the owl and the name, like the app's header.
+  const owlSize = 30
+  drawOwl(doc, MARGIN, y, owlSize)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(15)
+  doc.setTextColor(TEXT[0], TEXT[1], TEXT[2])
+  doc.text('Boardwise', MARGIN + owlSize * (92 / 84) + 8, y + owlSize / 2 + 5)
+  y += owlSize + 18
 
   const { labels } = input
   write(labels.heading, { size: 18, bold: true, after: 8 })
-  write(`${labels.issue}: ${input.caseTitle}`, { size: 11, bold: true, after: 2 })
+  writeRuns([{ text: `${labels.issue}: `, bold: true }, { text: input.caseTitle }], { after: 2 })
   write(`${labels.started}: ${input.formatDateTime(input.startedAt)}`, { size: 10, color: MUTED, after: 2 })
   write(`${labels.exported}: ${input.formatDateTime(new Date().toISOString())}`, { size: 10, color: MUTED, after: 10 })
   write(labels.notice, { size: 10, color: MUTED, after: 12 })
@@ -160,7 +452,8 @@ export async function downloadTranscript(input: TranscriptInput, filename: strin
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2])
-    doc.text(pdfSafe(labels.page(page, total)), MARGIN + width, doc.internal.pageSize.getHeight() - 28, { align: 'right' })
+    doc.text('Boardwise', MARGIN, pageHeight - 28)
+    doc.text(pdfSafe(labels.page(page, total)), MARGIN + width, pageHeight - 28, { align: 'right' })
   }
 
   doc.save(filename)

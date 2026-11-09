@@ -3,7 +3,7 @@
 // to a server, and these conversations must not leave the person's device that way. When
 // there's no on-device voice for the language, the Listen button stays hidden.
 import { useSyncExternalStore } from 'react'
-import { markdownToBlocks } from '../../export/markdownText.ts'
+import { markdownToBlocks, runsText } from '../../export/markdownText.ts'
 
 const synth: SpeechSynthesis | null =
   typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null
@@ -106,16 +106,33 @@ export function useReadingState(id: number): ReadingState {
   return useSyncExternalStore(subscribeReading, () => stateOf(id), () => 'idle')
 }
 
+/** Drops web addresses, which aren't worth hearing: "label (https://…)" becomes "label". */
+function stripAddresses(text: string): string {
+  return text
+    .replace(/\s*\((?:https?:\/\/|www\.)[^)\s]*\)/g, '')
+    .replace(/(?:https?:\/\/|www\.)\S+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 /** Turns a Markdown reply into short spoken chunks: no symbols, and no web addresses read out. */
 export function speechChunks(markdown: string): string[] {
   const chunks: string[] = []
   for (const block of markdownToBlocks(markdown)) {
     if (block.kind === 'rule' || block.kind === 'code') continue
-    const text = block.text
-      .replace(/\s*\((?:https?:\/\/|www\.)[^)\s]*\)/g, '') // "label (https://…)" → "label"
-      .replace(/(?:https?:\/\/|www\.)\S+/g, '') // bare addresses
-      .replace(/\s+/g, ' ')
-      .trim()
+    if (block.kind === 'table') {
+      // Each row is read as "Header: value. Header: value."
+      const headers = block.header.map(runsText)
+      for (const row of block.rows) {
+        const parts = row
+          .map((cell, index) => [headers[index], runsText(cell).trim()] as const)
+          .filter(([, value]) => value)
+          .map(([header, value]) => (header ? `${header}: ${value}` : value).replace(/[.!?]*$/, '.'))
+        chunks.push(...parts.map(stripAddresses).filter(Boolean))
+      }
+      continue
+    }
+    const text = stripAddresses(block.text)
     if (!text) continue
     // Long blocks are split by sentence: some browsers cut off a single long utterance.
     const sentences = (text.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g) ?? [text])
