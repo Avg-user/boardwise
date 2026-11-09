@@ -3,7 +3,7 @@ import RequireAuth from './auth/RequireAuth.tsx'
 import RequireRole, { RequireStaff } from './auth/RequireRole.tsx'
 import AppLayout from './components/AppLayout.tsx'
 import CasePage from './pages/CasePage.tsx'
-import CasesPage from './pages/CasesPage.tsx'
+import HomeRoute from './pages/HomeRoute.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import MessagesPage from './pages/MessagesPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
@@ -26,11 +26,12 @@ function App() {
         <Route path="signup" element={<SignupPage />} />
         <Route path="partners/login" element={<PartnerLoginPage />} />
         <Route path="partners/signup" element={<SignupPage audience="partner" />} />
+        {/* The landing page for visitors; signed-in people get their own home. */}
+        <Route index element={<HomeRoute />} />
         <Route element={<RequireAuth />}>
           {/* Shared cases open here for every role; the API decides who can see each case. */}
           <Route path="cases/:caseId" element={<CasePage />} />
           <Route element={<RequireRole roles={['victim']} />}>
-            <Route index element={<CasesPage />} />
             <Route path="lawyers" element={<LawyersPage />} />
             <Route path="lawyers/:firmId" element={<LawyerDetailPage />} />
             <Route path="workplace" element={<WorkplacePage />} />

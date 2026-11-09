@@ -189,6 +189,11 @@ All endpoints require authentication.
 - Firms and companies record `verified_by`. Always use the models' `verify(by=...)` / `unverify()`: the staff API, the Django admin actions and the "changed law society number / company name loses verification" rules all go through them.
 - Nothing in the staff API exposes cases, chats, reports, messages or job offers.
 
+### Landing page
+- `/` is `pages/HomeRoute.tsx`: signed-out visitors get `LandingPage` (frontend only, text under `landing.*`), workers get My Issues, and everyone else is sent to their own home (`getHome`). The logo links to `/` when signed out; sign-out still goes to `/login`.
+- The landing page's privacy promises describe what the code actually does (share-only access, no real name needed, local speech, Quick Exit). It deliberately leaves out the HR features for now.
+- The owl narrates the page in the first person as the AI assistant (as in chat). Keep it saying it's an AI and not a lawyer (`landing.owlHelloText`, `landing.aiNote`). Update them when that behaviour changes, and don't add claims (such as encryption) before they're built.
+
 ### Page not found
 - The app's `NotFoundPage` (owl between two 4s, home and back buttons, crisis line) covers unknown routes and issues, firms or threads that don't exist or aren't shared.
 - With DEBUG off, Django's `handler404` (`config/urls.py`) returns `{"detail": "Not found."}` for `/api/...` and a small Boardwise page for anything else.
