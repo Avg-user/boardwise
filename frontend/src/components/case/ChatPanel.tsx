@@ -15,7 +15,7 @@ import Markdown from './Markdown.tsx'
 import { conversationsQuery, NEW_SESSION, SESSION_PARAM, useConversation } from './useConversation.ts'
 import { useDictation } from './useDictation.ts'
 import { warmDictation } from '../../api/dictation.ts'
-import { pauseSpeaking, resetSpeaking, speak, useLocalVoice, useReadingState } from './readAloud.ts'
+import { pauseSpeaking, resetSpeaking, speak, useLocalVoice, useReadingState, useServerVoice } from './readAloud.ts'
 
 const DICTATION_ERRORS = {
   micDenied: 'chat.dictation.micDenied',
@@ -49,12 +49,14 @@ function AssistantLabel() {
   )
 }
 
-/** Reads one reply aloud. Hidden when the device has no voice of its own for the language. */
-function ListenButton({ message }: { message: ChatMessage }) {
+/** Reads one reply aloud. Hidden when neither our voice service nor an on-device voice can. */
+function ListenButton({ message, caseId }: { message: ChatMessage; caseId: number }) {
   const { t, i18n } = useTranslation()
-  const voice = useLocalVoice(i18n.resolvedLanguage)
+  const language = i18n.resolvedLanguage ?? 'en'
+  const voice = useLocalVoice(language)
+  const serverVoice = useServerVoice(language)
   const state = useReadingState(message.id)
-  if (!voice) return null
+  if (!voice && !serverVoice) return null
   const labels = {
     idle: ['chat.listen.start', 'chat.listen.startLabel'],
     speaking: ['chat.listen.pause', 'chat.listen.pauseLabel'],
@@ -66,7 +68,7 @@ function ListenButton({ message }: { message: ChatMessage }) {
       type="button"
       className="button-quiet listen-button"
       aria-label={t(label)}
-      onClick={() => (state === 'speaking' ? pauseSpeaking() : speak(message.id, message.content, voice))}
+      onClick={() => (state === 'speaking' ? pauseSpeaking() : speak(message.id, message.content, { caseId, language, voice }))}
     >
       {state === 'speaking' ? <PauseIcon /> : <SpeakerIcon />}
       {t(text)}
@@ -91,7 +93,7 @@ function PauseIcon() {
   )
 }
 
-function Message({ message }: { message: ChatMessage }) {
+function Message({ message, caseId }: { message: ChatMessage; caseId: number }) {
   const { t } = useTranslation()
 
   if (message.role === 'user') {
@@ -100,7 +102,9 @@ function Message({ message }: { message: ChatMessage }) {
   return (
     <div className="message message--assistant">
       <AssistantLabel />
-      <Markdown text={message.content} />
+      <div data-reading-id={message.id}>
+        <Markdown text={message.content} />
+      </div>
       {message.citations.length > 0 && (
         <div className="citations">
           <span className="citations__label">{t('chat.sources')}</span>
@@ -116,7 +120,7 @@ function Message({ message }: { message: ChatMessage }) {
           </ul>
         </div>
       )}
-      <ListenButton message={message} />
+      <ListenButton message={message} caseId={caseId} />
     </div>
   )
 }
@@ -573,7 +577,7 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
           </div>
         )}
         {messages.map((message) => (
-          <Message key={message.id} message={message} />
+          <Message key={message.id} message={message} caseId={caseId} />
         ))}
         {pendingText !== null && <p className="message message--user">{pendingText}</p>}
         {isSendingHere && (

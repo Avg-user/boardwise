@@ -200,6 +200,7 @@ RAG_SEARCH_CONFIG = os.environ.get('RAG_SEARCH_CONFIG', 'english')  # Postgres t
 SPEECH_TICKET_SECRET = os.environ.get('SPEECH_TICKET_SECRET', '')
 SPEECH_TICKET_TTL = int(os.environ.get('SPEECH_TICKET_TTL', '60'))
 SPEECH_WS_URL = os.environ.get('SPEECH_WS_URL', '/speech/ws')  # where the browser connects
+SPEECH_TTS_URL = os.environ.get('SPEECH_TTS_URL', '/speech/tts')  # read-aloud, same service
 
 # Uploaded case files: never under STATIC/MEDIA URLs.
 PRIVATE_MEDIA_ROOT = os.environ.get('PRIVATE_MEDIA_ROOT', str(BASE_DIR / 'private_media'))

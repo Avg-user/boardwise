@@ -8,6 +8,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# The read-aloud voice is baked into the image, so nothing is downloaded at runtime.
+ARG TTS_VOICE=en_US-ryan-medium
+ENV TTS_VOICE=${TTS_VOICE} TTS_VOICE_DIR=/voices
+RUN python -m piper.download_voices ${TTS_VOICE} --data-dir /voices
+
 # Model weights download into /models on first use; mount a volume there to keep them.
 RUN useradd --system --create-home speech && mkdir -p /models && chown speech /models
 COPY *.py ./

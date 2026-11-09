@@ -5,6 +5,7 @@ import { createConversation, sendMessage } from '../../api/chat.ts'
 import { ApiError } from '../../api/client.ts'
 import { queryClient } from '../../queryClient.ts'
 import { todayLocal } from '../../utils/date.ts'
+import { prepareSpeech } from './readAloud.ts'
 import { conversationsQuery, messagesQuery } from './useConversation.ts'
 
 export type PendingSend = {
@@ -74,7 +75,7 @@ export async function sendChatMessage({ caseId, conversationId, content, languag
       update(caseId, { conversationId: id })
       await queryClient.invalidateQueries({ queryKey: conversationsQuery(caseId).queryKey, exact: true })
     }
-    await sendMessage({
+    const { reply } = await sendMessage({
       caseId,
       conversationId: id,
       content,
@@ -84,6 +85,8 @@ export async function sendChatMessage({ caseId, conversationId, content, languag
       entryDate: todayLocal(),
       onDelta: (piece) => update(caseId, { streamed: (pending.get(caseId)?.streamed ?? '') + piece }),
     })
+    // Make the reply's first sentences now, so Listen starts at once.
+    if (reply) prepareSpeech(reply.id, reply.content, caseId, language)
     // Load the saved messages, then clear the pending bubble straight away, so the reply
     // never shows twice. Load first, so the message doesn't flicker out in between.
     await queryClient.fetchQuery(messagesQuery(caseId, id))
