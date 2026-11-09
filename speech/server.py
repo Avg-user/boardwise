@@ -1,4 +1,4 @@
-"""Boardwise speech service: live dictation over WebSocket, transcribed locally with faster-whisper.
+"""Boardwise speech service: live dictation (faster-whisper) and read-aloud (Piper), both local.
 
 Idle until someone dictates: the model loads on the first session and unloads after
 SPEECH_IDLE_UNLOAD_S seconds without one, so an idle container uses no CPU and little memory.
@@ -15,7 +15,16 @@ Protocol (one WebSocket per dictation):
   server -> {"type": "done", "reason": "stopped" | "limit"}   then closes
   server -> {"type": "error", "code": "unauthorized" | "busy" | "failed"}   then closes
 
-Privacy: audio and text are never stored, and transcript text is never logged (IDs only).
+Read-aloud (one WebSocket per Listen press):
+  connect   /tts?ticket=<one-time ticket with purpose "read">
+  client -> {"type": "speak", "chunks": ["sentence", ...]}
+  server -> {"type": "audio", "index": i, "sample_rate": 22050}, then one binary frame:
+            16-bit mono little-endian PCM for chunk i (empty chunks are skipped)
+  server -> {"type": "done"}                       then closes
+  server -> {"type": "error", "code": "unauthorized" | "busy" | "bad_request" | "too_long" | "failed"}
+  The client closes the socket to stop; synthesis stops at the next chunk.
+
+Privacy: audio and text are never stored, and transcript or reply text is never logged (IDs only).
 """
 import asyncio
 import gc
@@ -35,6 +44,7 @@ from websockets.exceptions import ConnectionClosed
 
 from streaming import SAMPLE_RATE, StreamingTranscriber, load_model
 from tickets import TicketError, TicketVerifier
+from tts import load_speaker
 
 log = logging.getLogger("speech")
 MAX_FRAME_BYTES = 64 * 1024  # ~2 s of audio; browsers send ~100 ms (3.2 KB) frames
@@ -50,6 +60,11 @@ class Config:
     idle_unload_s: float = 120.0
     host: str = "0.0.0.0"
     port: int = 9100
+    tts_voice: str = "en_US-ryan-medium"
+    tts_length_scale: float = 1.05  # >1 is slower; a touch slower is easier to follow
+    tts_max_sessions: int = 2
+    tts_max_chars: int = 8000        # per Listen press
+    tts_max_chunk_chars: int = 600   # per sentence
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -63,6 +78,9 @@ class Config:
             idle_unload_s=float(env("SPEECH_IDLE_UNLOAD_S", "120")),
             host=env("SPEECH_HOST", "0.0.0.0"),
             port=int(env("SPEECH_PORT", "9100")),
+            tts_voice=env("TTS_VOICE", "en_US-ryan-medium"),
+            tts_length_scale=float(env("TTS_LENGTH_SCALE", "1.05")),
+            tts_max_sessions=int(env("TTS_MAX_SESSIONS", "2")),
         )
 
 
@@ -108,10 +126,12 @@ class ModelPool:
 
 
 class SpeechServer:
-    def __init__(self, config: Config, loader=load_model, clock=time.time):
+    def __init__(self, config: Config, loader=load_model, clock=time.time, tts_loader=None):
         self.config = config
         self.tickets = TicketVerifier(config.secret, clock=clock)
         self.models = ModelPool(config.model, config.threads, config.idle_unload_s, loader)
+        tts_loader = tts_loader or (lambda name, threads: load_speaker(name, config.tts_length_scale))
+        self.voices = ModelPool(config.tts_voice, config.threads, config.idle_unload_s, tts_loader)
         self._ids = itertools.count(1)
         self._warming = None  # keeps the warm-up task from being garbage-collected
 
@@ -123,7 +143,7 @@ class SpeechServer:
             self.models.touch()  # restart the idle timer
             self._warming = asyncio.get_running_loop().create_task(self.models.get())
             return connection.respond(HTTPStatus.OK, "ok\n")
-        if path != "/ws":
+        if path not in ("/ws", "/tts"):
             return connection.respond(HTTPStatus.NOT_FOUND, "Not found\n")
         return None  # continue with the WebSocket handshake
 
@@ -135,6 +155,14 @@ class SpeechServer:
         except TicketError as exc:
             log.info("Session %s refused: ticket %s", session, exc)
             await self._fail(ws, "unauthorized", 1008)
+            return
+        reading = urlparse(ws.request.path).path == "/tts"
+        if claims.purpose != ("read" if reading else "dictate"):
+            log.info("Session %s refused: ticket for %s", session, claims.purpose)
+            await self._fail(ws, "unauthorized", 1008)
+            return
+        if reading:
+            await self._read_aloud(ws, claims, session)
             return
         if self.models.in_use >= self.config.max_sessions:
             log.info("Session %s refused: busy", session)
@@ -223,6 +251,50 @@ class SpeechServer:
         finally:
             receiver.cancel()
 
+    async def _read_aloud(self, ws, claims, session: int) -> None:
+        """Speak each chunk in order. Text is never logged: only counts and IDs."""
+        if self.voices.in_use >= self.config.tts_max_sessions:
+            log.info("Read-aloud %s refused: busy", session)
+            await self._fail(ws, "busy", 1013)
+            return
+        self.voices.in_use += 1
+        started, spoken, total = time.monotonic(), 0, 0
+        try:
+            try:
+                data = json.loads(await asyncio.wait_for(ws.recv(), timeout=30))
+            except (ValueError, TypeError):
+                data = None
+            chunks = data.get("chunks") if isinstance(data, dict) and data.get("type") == "speak" else None
+            if not isinstance(chunks, list) or not chunks or not all(isinstance(c, str) for c in chunks):
+                await self._fail(ws, "bad_request", 1003)
+                return
+            total = len(chunks)
+            if (sum(map(len, chunks)) > self.config.tts_max_chars
+                    or max(map(len, chunks)) > self.config.tts_max_chunk_chars):
+                await self._fail(ws, "too_long", 1009)
+                return
+            speaker = await self.voices.get()
+            for index, text in enumerate(chunks):
+                text = text.strip()
+                if not text:
+                    continue
+                rate, audio = await asyncio.to_thread(speaker.speak, text)  # off the event loop
+                await ws.send(json.dumps({"type": "audio", "index": index, "sample_rate": rate}))
+                await ws.send(audio)
+                spoken += 1
+            await ws.send(json.dumps({"type": "done"}))
+            await ws.close()
+        except (ConnectionClosed, asyncio.TimeoutError):
+            pass  # the listener paused or left
+        except Exception as exc:
+            log.error("Read-aloud %s failed: %s", session, type(exc).__name__)
+            await self._fail(ws, "failed", 1011)
+        finally:
+            self.voices.in_use -= 1
+            self.voices.touch()
+            log.info("Read-aloud %s (user %s, case %s) ended: %s of %s chunks in %.1fs",
+                     session, claims.user_id, claims.case_id, spoken, total, time.monotonic() - started)
+
     @staticmethod
     async def _send(ws, update) -> None:
         for segment in update.final:
@@ -249,12 +321,14 @@ async def main() -> None:
     except NotImplementedError:
         pass  # Windows; Ctrl+C still works
     unloader = asyncio.create_task(server.models.unload_when_idle())
+    voice_unloader = asyncio.create_task(server.voices.unload_when_idle())
     async with serve(server.handler, config.host, config.port, process_request=server.process_request,
                      max_size=MAX_FRAME_BYTES):
         log.info("Listening on %s:%s (model %s loads on first use, max %s sessions)",
                  config.host, config.port, config.model, config.max_sessions)
         await stop
     unloader.cancel()
+    voice_unloader.cancel()
 
 
 if __name__ == "__main__":

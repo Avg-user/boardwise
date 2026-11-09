@@ -22,7 +22,8 @@ def decode(ticket: str, secret: str = SECRET) -> dict:
     return json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
 
 
-@override_settings(SPEECH_TICKET_SECRET=SECRET, SPEECH_TICKET_TTL=60, SPEECH_WS_URL="/speech/ws")
+@override_settings(SPEECH_TICKET_SECRET=SECRET, SPEECH_TICKET_TTL=60, SPEECH_WS_URL="/speech/ws",
+                   SPEECH_TTS_URL="/speech/tts")
 class DictationTicketTests(APITestCase):
     def setUp(self):
         self.victim = User.objects.create_user("v", role=User.Role.VICTIM, preferred_language="fr")
@@ -42,9 +43,23 @@ class DictationTicketTests(APITestCase):
         self.assertEqual(response.data["url"], "/speech/ws")
         self.assertEqual(response.data["expires_in"], 60)
         payload = decode(response.data["ticket"])
-        self.assertEqual(set(payload), {"u", "c", "lang", "exp", "n"})
+        self.assertEqual(set(payload), {"u", "c", "lang", "p", "exp", "n"})
+        self.assertEqual(payload["p"], "dictate")
         self.assertEqual((payload["u"], payload["c"], payload["lang"]), (self.victim.pk, self.case.pk, "en"))
         self.assertAlmostEqual(payload["exp"], time.time() + 60, delta=5)
+
+    def test_read_aloud_ticket_points_at_tts(self):
+        response = self.post(self.victim, {"purpose": "read", "language": "en"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["url"], "/speech/tts")
+        self.assertEqual(decode(response.data["ticket"])["p"], "read")
+
+    def test_unknown_purpose_rejected(self):
+        self.assertEqual(self.post(self.victim, {"purpose": "record"}).status_code, 400)
+
+    def test_grantee_cannot_get_read_aloud_ticket(self):
+        CaseShare.objects.create(case=self.case, grantee=self.lawyer)
+        self.assertEqual(self.post(self.lawyer, {"purpose": "read"}).status_code, 403)
 
     def test_tickets_are_unique(self):
         first, second = (decode(self.post(self.victim).data["ticket"]) for _ in range(2))

@@ -1774,6 +1774,12 @@ p.message--user {
 }
 
 /* Under the reply, where you finish reading. Icon plus word, quiet like the other actions. */
+/* The sentence being read aloud (readingHighlight.ts). A soft yellow wash: text stays ink. */
+::highlight(reading) {
+  background-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  color: inherit;
+}
+
 .listen-button {
   display: inline-flex;
   align-items: center;
