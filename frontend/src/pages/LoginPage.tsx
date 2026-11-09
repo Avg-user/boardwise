@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate } from 'react-router-dom'
-import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import { getHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import { useSignIn } from '../auth/useSignIn.ts'
 import { Owl } from '../components/brand/Owl.tsx'
 import WorkplaceScene from '../components/site/WorkplaceScene.tsx'
@@ -15,7 +15,7 @@ function LoginPage() {
   const [typingPassword, setTypingPassword] = useState(false)
 
   if (user && !isSubmitting) {
-    return <Navigate to={getRoleHome(user.role)} replace />
+    return <Navigate to={getHome(user)} replace />
   }
 
   const title = t('auth.signIn')

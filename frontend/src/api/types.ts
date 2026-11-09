@@ -7,6 +7,8 @@ export type User = {
   username: string
   role: UserRole
   preferred_language: string
+  /** Boardwise staff. They use the staff tools at /staff instead of a role's pages. */
+  is_staff?: boolean
 }
 
 export type LoginResponse = {

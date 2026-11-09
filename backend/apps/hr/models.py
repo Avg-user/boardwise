@@ -12,6 +12,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.documents.models import private_storage
 
@@ -40,6 +41,8 @@ class Company(models.Model):
     # Verification: set by Boardwise staff in the admin, never by HR.
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = CompanyQuerySet.as_manager()
@@ -50,6 +53,16 @@ class Company(models.Model):
 
     def __str__(self):
         return self.name
+
+    def verify(self, by):
+        """Staff only. Records who verified, for accountability."""
+        self.is_verified, self.verified_at, self.verified_by = True, timezone.now(), by
+        self.save(update_fields=["is_verified", "verified_at", "verified_by"])
+
+    def unverify(self, save=True):
+        self.is_verified, self.verified_at, self.verified_by = False, None, None
+        if save:
+            self.save(update_fields=["is_verified", "verified_at", "verified_by"])
 
 
 class HRMembership(models.Model):

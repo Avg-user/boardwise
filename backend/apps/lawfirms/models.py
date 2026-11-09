@@ -73,6 +73,8 @@ class LawFirmProfile(models.Model):
     law_society_number = models.CharField(max_length=50)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
 
     accepting_clients = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -85,6 +87,16 @@ class LawFirmProfile(models.Model):
 
     def __str__(self):
         return f"LawFirmProfile {self.pk}"
+
+    def verify(self, by):
+        """Staff only. Records who verified, for accountability."""
+        self.is_verified, self.verified_at, self.verified_by = True, timezone.now(), by
+        self.save(update_fields=["is_verified", "verified_at", "verified_by"])
+
+    def unverify(self, save=True):
+        self.is_verified, self.verified_at, self.verified_by = False, None, None
+        if save:
+            self.save(update_fields=["is_verified", "verified_at", "verified_by"])
 
 
 class MatchRequest(models.Model):

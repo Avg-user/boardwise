@@ -61,8 +61,7 @@ class LawFirmOwnSerializer(serializers.ModelSerializer):
         # A new law society number needs to be checked again before the firm is listed.
         number = data.get("law_society_number")
         if number is not None and number.strip() != instance.law_society_number:
-            instance.is_verified = False
-            instance.verified_at = None
+            instance.unverify(save=False)
         return super().update(instance, data)
 
 

@@ -57,11 +57,13 @@
     "firm": "Tableau de bord",
     "portal": {
       "hr": "Comité RH",
-      "law_firm": "Cabinet d'avocats"
+      "law_firm": "Cabinet d'avocats",
+      "staff": "Équipe"
     },
     "firmProfile": "Profil",
     "workplace": "Milieu de travail",
-    "messages": "Messages"
+    "messages": "Messages",
+    "staff": "Vérification"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -291,9 +293,12 @@
     "hide": "Masquer ce message"
   },
   "notFound": {
-    "title": "Page introuvable",
-    "description": "Cette page n'existe pas ou a peut-être été déplacée.",
-    "back": "Aller à Mes dossiers"
+    "title": "Nous n'avons pas trouvé cette page",
+    "description": "L'adresse est peut-être mal saisie, ou la page a été déplacée ou supprimée. Si vous avez suivi un lien vers un dossier ou une conversation, il a peut-être été supprimé, ou il n'est pas partagé avec vous.",
+    "home": "Aller à ma page d'accueil",
+    "signIn": "Aller à la connexion",
+    "goBack": "Revenir en arrière",
+    "help": "En danger? Composez le 911. Pour du soutien en tout temps, appelez ou textez le 988."
   },
   "partners": {
     "prompt": "Comité RH ou cabinet d'avocats?",
@@ -669,5 +674,69 @@
     "cannotReply": "Ce cabinet ne peut pas répondre pour l'instant, car il n'est pas vérifié en ce moment.",
     "workerFootnote": "Seuls vous et ce cabinet pouvez lire cette conversation. Écrire ici ne partage aucun de vos dossiers.",
     "firmFootnote": "Seuls votre cabinet et ce travailleur peuvent lire cette conversation. Appuyez sur Ctrl+Entrée ou Cmd+Entrée pour envoyer."
+  },
+  "staff": {
+    "eyebrow": "Équipe Boardwise",
+    "title": "Vérification",
+    "description": "Vérifiez les cabinets d'avocats et les entreprises avant qu'ils soient répertoriés ou puissent voir quoi que ce soit. Rien ici ne montre les dossiers, discussions ou signalements des travailleurs.",
+    "firmsWaiting": "Cabinets en attente",
+    "companiesWaiting": "Entreprises en attente",
+    "verifiedTotals": "Vérifiés",
+    "accounts": "Comptes",
+    "tabsLabel": "Quoi vérifier",
+    "tab": {
+      "firms": "Cabinets d'avocats",
+      "companies": "Entreprises (RH)"
+    },
+    "statusLabel": "Afficher",
+    "status": {
+      "pending": "En attente",
+      "verified": "Vérifiés",
+      "all": "Tous"
+    },
+    "search": "Rechercher",
+    "searchFirms": "Rechercher par nom, ville ou numéro du Barreau",
+    "searchCompanies": "Rechercher par nom ou ville",
+    "firmHint": "Vérifiez le numéro dans le répertoire des avocats du Barreau de l'Alberta, et que le nom correspond, avant de vérifier. Les cabinets vérifiés qui acceptent des clients apparaissent dans Trouver un avocat.",
+    "companyHint": "Confirmez que la personne des RH travaille dans cette entreprise, par exemple en appelant son numéro principal. Une entreprise vérifiée apparaît dans la liste des travailleurs, et son équipe RH voit les totaux des signalements anonymes.",
+    "waiting": "En attente",
+    "verified": "Vérifié",
+    "verifiedOn": "Vérifié le {{date}} par {{by}}",
+    "signedUp": "Inscrit le {{date}} · compte {{account}}",
+    "created": "Ajoutée le {{date}}",
+    "noName": "(pas encore de nom)",
+    "lawSociety": "Numéro du Barreau",
+    "where": "Lieu",
+    "email": "Courriel",
+    "phone": "Téléphone",
+    "website": "Site Web",
+    "inDirectory": "Dans le répertoire",
+    "listed": "Répertorié",
+    "notListed": "Non répertorié",
+    "notAccepting": "N'accepte pas de clients",
+    "hrAccounts": "Comptes RH",
+    "missing": "Encore vide : {{fields}}. Le cabinet ne sera pas répertorié tant qu'il ne les aura pas remplis.",
+    "fields": {
+      "description": "description",
+      "law_society_number": "numéro du Barreau"
+    },
+    "verify": "Vérifier",
+    "unverify": "Retirer la vérification",
+    "working": "Enregistrement…",
+    "unverifyTitle": "Retirer la vérification de {{name}}?",
+    "unverifyFirm": "Le cabinet disparaît de Trouver un avocat, ne peut plus accepter de demandes ni répondre aux messages jusqu'à une nouvelle vérification.",
+    "unverifyCompany": "Les travailleurs ne peuvent plus choisir cette entreprise ni lui faire de signalement, et son équipe RH perd le tableau de bord et la vérification des offres jusqu'à une nouvelle vérification.",
+    "allDone": "Rien en attente. Tout est à jour.",
+    "none": "Aucun résultat.",
+    "count": {
+      "firms_one": "{{count}} cabinet",
+      "firms_other": "{{count}} cabinets",
+      "companies_one": "{{count}} entreprise",
+      "companies_other": "{{count}} entreprises",
+      "workers_one": "{{count}} travailleur",
+      "workers_other": "{{count}} travailleurs",
+      "hr_one": "{{count}} compte RH",
+      "hr_other": "{{count}} comptes RH"
+    }
   }
 }

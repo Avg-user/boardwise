@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { getCase } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
-import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import { getHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import CaseHeader from '../components/case/CaseHeader.tsx'
 import ChatPanel from '../components/case/ChatPanel.tsx'
 import MatchesPanel from '../components/case/MatchesPanel.tsx'
@@ -57,7 +57,7 @@ function CasePage() {
   return (
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
-      <Link className="back-link" to={user ? getRoleHome(user.role) : '/'}>
+      <Link className="back-link" to={user ? getHome(user) : '/'}>
         <Icon name="chevronLeft" />
         {canEdit ? t('case.back') : t('case.backPartner')}
       </Link>

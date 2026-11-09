@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import RequireAuth from './auth/RequireAuth.tsx'
-import RequireRole from './auth/RequireRole.tsx'
+import RequireRole, { RequireStaff } from './auth/RequireRole.tsx'
 import AppLayout from './components/AppLayout.tsx'
 import CasePage from './pages/CasePage.tsx'
 import CasesPage from './pages/CasesPage.tsx'
@@ -14,6 +14,7 @@ import LawyersPage from './pages/LawyersPage.tsx'
 import PartnerHomePage from './pages/PartnerHomePage.tsx'
 import PartnerLoginPage from './pages/PartnerLoginPage.tsx'
 import SignupPage from './pages/SignupPage.tsx'
+import StaffPage from './pages/StaffPage.tsx'
 import ThreadPage from './pages/ThreadPage.tsx'
 import WorkplacePage from './pages/WorkplacePage.tsx'
 
@@ -38,6 +39,9 @@ function App() {
           <Route element={<RequireRole roles={['victim', 'law_firm']} />}>
             <Route path="messages" element={<MessagesPage />} />
             <Route path="messages/:threadId" element={<ThreadPage />} />
+          </Route>
+          <Route element={<RequireStaff />}>
+            <Route path="staff" element={<StaffPage />} />
           </Route>
           <Route element={<RequireRole roles={['hr']} />}>
             <Route path="hr" element={<HrHomePage />} />

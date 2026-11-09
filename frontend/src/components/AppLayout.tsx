@@ -7,7 +7,7 @@ import { UNREAD_KEY, unreadCount } from '../api/messages.ts'
 import type { User, UserRole } from '../api/types.ts'
 import { endSessionNow } from '../auth/privacy.ts'
 import { useIdleLock } from '../auth/useIdleLock.ts'
-import { getRoleHome, useCurrentUser } from '../auth/useCurrentUser.ts'
+import { getHome, useCurrentUser } from '../auth/useCurrentUser.ts'
 import { CURRENT_USER_KEY, clearSession, queryClient } from '../queryClient.ts'
 import HeaderMenu from './HeaderMenu.tsx'
 import LockScreen from './LockScreen.tsx'
@@ -29,6 +29,8 @@ const NAV_ITEMS = {
     { to: '/firm/profile', labelKey: 'nav.firmProfile' },
   ],
 } as const satisfies Record<UserRole, readonly { to: string; labelKey: string }[]>
+
+const STAFF_NAV = [{ to: '/staff', labelKey: 'nav.staff' }] as const
 
 type Lock = { username: string; role: UserRole; reason: 'idle' | 'manual' }
 
@@ -58,10 +60,12 @@ function AppLayout() {
   const [lock, setLock] = useState<Lock | null>(null)
   const role = user?.role ?? lock?.role
   // Partners get their own look: HR in blue, law firms in gold. Workers keep the default.
-  const theme = role ? THEMES[role] : pathname.startsWith('/partners') ? 'partner' : undefined
-  const portal = user && user.role !== 'victim' ? t(`nav.portal.${user.role}`) : null
-  // Workers, and anyone on the worker sign-in pages, can leave quickly. Partners are at work.
-  const showQuickExit = role ? role === 'victim' : !pathname.startsWith('/partners')
+  const isStaff = Boolean(user?.is_staff)
+  const theme = isStaff ? 'staff' : role ? THEMES[role] : pathname.startsWith('/partners') ? 'partner' : undefined
+  const portal = isStaff ? t('nav.portal.staff') : user && user.role !== 'victim' ? t(`nav.portal.${user.role}`) : null
+  // Workers, and anyone on the worker sign-in pages, can leave quickly. Partners and staff are at work.
+  const showQuickExit = isStaff ? false : role ? role === 'victim' : !pathname.startsWith('/partners')
+  const navItems = user ? (isStaff ? STAFF_NAV : NAV_ITEMS[user.role]) : []
 
   /** Hides the page and ends the session; the same account signs in again to carry on. */
   function lockNow(reason: Lock['reason']) {
@@ -99,7 +103,7 @@ function AppLayout() {
         <div className="container app-header__inner">
           <Link
             className="app-brand"
-            to={user ? getRoleHome(user.role) : '/login'}
+            to={user ? getHome(user) : '/login'}
             aria-label={t('app.home')}
           >
             <OwlMark />
@@ -108,7 +112,7 @@ function AppLayout() {
           {portal && <span className="portal-badge">{portal}</span>}
           {user && (
             <nav className="app-nav" aria-label={t('layout.mainNavigation')}>
-              {NAV_ITEMS[user.role].map(({ to, labelKey }) => (
+              {navItems.map(({ to, labelKey }) => (
                 <NavLink key={to} to={to} end={to !== '/messages'}>
                   {t(labelKey)}
                   {to === '/messages' && <UnreadBadge />}

@@ -16,8 +16,12 @@ from apps.tasks.models import Task
 PASSWORD = "demo1234"
 DEMO_USERS = [
     ("victim", "victim"), ("hr", "hr"), ("lawfirm", "law_firm"),
-    ("prairielaw", "law_firm"), ("justiceco", "law_firm"), ("newfirm", "law_firm"),
+    ("prairielaw", "law_firm"), ("justiceco", "law_firm"), ("newfirm", "law_firm"), ("newhr", "hr"),
+    ("staff", "victim"),  # Boardwise staff (is_staff): the role doesn't matter, they use /staff
 ]
+STAFF_USERS = {"staff"}
+# Waits for staff to verify it, so the staff dashboard has something to do.
+PENDING_COMPANY = "Riverside Care Homes"
 
 # Fictional firms for the marketplace demo. "newfirm" stays unverified, so it isn't listed.
 DEMO_FIRMS = {
@@ -99,11 +103,12 @@ class Command(BaseCommand):
         User = get_user_model()
         if reset:
             User.objects.filter(username__in=[u for u, _ in DEMO_USERS]).delete()
-            Company.objects.filter(name=DEMO_COMPANY).delete()  # reports and offers go with it
+            Company.objects.filter(name__in=[DEMO_COMPANY, PENDING_COMPANY]).delete()  # reports, offers too
 
         users = {}
         for username, role in DEMO_USERS:
-            user, created = User.objects.get_or_create(username=username, defaults={"role": role})
+            user, created = User.objects.get_or_create(
+                username=username, defaults={"role": role, "is_staff": username in STAFF_USERS})
             if created:
                 user.set_password(PASSWORD)
                 user.save()
@@ -113,6 +118,9 @@ class Command(BaseCommand):
             LawFirmProfile.objects.get_or_create(user=users[username], defaults=data)
 
         self._create_company(users["hr"], users["victim"])
+        if not HRMembership.objects.filter(user=users["newhr"]).exists():
+            pending = Company.objects.create(name=PENDING_COMPANY, province="AB", city="Red Deer")
+            HRMembership.objects.create(user=users["newhr"], company=pending)
 
         self._create_firm_conversation(users["victim"], users["lawfirm"])
 

@@ -57,11 +57,13 @@
     "firm": "Dashboard",
     "portal": {
       "hr": "HR board",
-      "law_firm": "Law firm"
+      "law_firm": "Law firm",
+      "staff": "Staff"
     },
     "firmProfile": "Profile",
     "workplace": "Workplace",
-    "messages": "Messages"
+    "messages": "Messages",
+    "staff": "Verification"
   },
   "auth": {
     "signIn": "Sign in",
@@ -291,9 +293,12 @@
     "hide": "Hide this message"
   },
   "notFound": {
-    "title": "Page not found",
-    "description": "This page doesn't exist or may have moved.",
-    "back": "Go to My issues"
+    "title": "We couldn't find that page",
+    "description": "The address may be mistyped, or the page was moved or removed. If you followed a link to an issue or a conversation, it may have been deleted, or it isn't shared with you.",
+    "home": "Go to my home page",
+    "signIn": "Go to sign in",
+    "goBack": "Go back",
+    "help": "In danger? Call 911. For support any time, call or text 988."
   },
   "partners": {
     "prompt": "HR board or law firm?",
@@ -669,5 +674,69 @@
     "cannotReply": "This firm can't reply right now because it isn't verified at the moment.",
     "workerFootnote": "Only you and this firm can read this conversation. Talking here doesn't share any of your issues.",
     "firmFootnote": "Only your firm and this worker can read this conversation. Press Ctrl+Enter or Cmd+Enter to send."
+  },
+  "staff": {
+    "eyebrow": "Boardwise staff",
+    "title": "Verification",
+    "description": "Check law firms and HR companies before they're listed or can see anything. Nothing here shows workers' issues, chats or reports.",
+    "firmsWaiting": "Law firms waiting",
+    "companiesWaiting": "Companies waiting",
+    "verifiedTotals": "Verified",
+    "accounts": "Accounts",
+    "tabsLabel": "What to review",
+    "tab": {
+      "firms": "Law firms",
+      "companies": "HR companies"
+    },
+    "statusLabel": "Show",
+    "status": {
+      "pending": "Waiting",
+      "verified": "Verified",
+      "all": "All"
+    },
+    "search": "Search",
+    "searchFirms": "Search by name, city or law society number",
+    "searchCompanies": "Search by name or city",
+    "firmHint": "Look the law society number up in the Law Society of Alberta's lawyer directory, and check the name matches, before verifying. Verified firms that accept clients appear in Find a lawyer.",
+    "companyHint": "Confirm the HR contact works at this company, for example by calling its main phone line. A verified company appears in workers' company list, and its HR team sees anonymous report totals.",
+    "waiting": "Waiting",
+    "verified": "Verified",
+    "verifiedOn": "Verified {{date}} by {{by}}",
+    "signedUp": "Signed up {{date}} · account {{account}}",
+    "created": "Added {{date}}",
+    "noName": "(no name yet)",
+    "lawSociety": "Law society number",
+    "where": "Location",
+    "email": "Email",
+    "phone": "Phone",
+    "website": "Website",
+    "inDirectory": "In the directory",
+    "listed": "Listed",
+    "notListed": "Not listed",
+    "notAccepting": "Not accepting clients",
+    "hrAccounts": "HR accounts",
+    "missing": "Still empty: {{fields}}. The firm won't be listed until it fills these in.",
+    "fields": {
+      "description": "description",
+      "law_society_number": "law society number"
+    },
+    "verify": "Verify",
+    "unverify": "Remove verification",
+    "working": "Saving…",
+    "unverifyTitle": "Remove verification from {{name}}?",
+    "unverifyFirm": "The firm disappears from Find a lawyer, can't accept requests and can't reply to messages until it's verified again.",
+    "unverifyCompany": "Workers can no longer pick or report to this company, and its HR team loses the dashboard and job offer checks until it's verified again.",
+    "allDone": "Nothing waiting. You're all caught up.",
+    "none": "Nothing matches.",
+    "count": {
+      "firms_one": "{{count}} law firm",
+      "firms_other": "{{count}} law firms",
+      "companies_one": "{{count}} company",
+      "companies_other": "{{count}} companies",
+      "workers_one": "{{count}} worker",
+      "workers_other": "{{count}} workers",
+      "hr_one": "{{count}} HR account",
+      "hr_other": "{{count}} HR accounts"
+    }
   }
 }

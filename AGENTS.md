@@ -73,7 +73,7 @@ cd backend
 .venv/bin/python manage.py seed_demo                   # add --reset to rebuild; refuses unless DEBUG=True
 .venv/bin/python manage.py runserver
 ```
-Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed). The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request. `hr` manages the verified company "Northwind Logistics" (sample reports and one reviewed job offer); `victim` works there with reporting turned on.
+Demo logins (password `demo1234`): `victim`, `hr`, `lawfirm`, plus firms `prairielaw`, `justiceco` (verified) and `newfirm` (unverified, so not listed), `newhr` (its company "Riverside Care Homes" waits for verification) and `staff` (Boardwise staff: the Verification page). The seeded case belongs to `victim`, has timeline entries, tasks and a conversation, and is shared with `lawfirm` through an accepted match request. `hr` manages the verified company "Northwind Logistics" (sample reports and one reviewed job offer); `victim` works there with reporting turned on.
 
 Swagger UI: `/api/docs/` · OpenAPI schema: `/api/schema/` (lock these down before deploying).
 
@@ -182,6 +182,16 @@ All endpoints require authentication.
 - **Job offers**: `/api/hr/job-offers/` (list, create, retrieve, delete, `retry/`). Multipart `file` (PDF, DOCX, TXT/MD, 5 MB) or `text`. The review runs in Celery (`tasks.review_job_offer`, `offer_review.py`): extract text, retrieve law sections for a fixed list of topics plus the offer itself, then `llm.chat` with `prompts/job_offer_review.md`, which asks for JSON findings (`violation`/`concern`/`info` with quote and citation). A non-JSON reply is kept as the summary. The offer is wrapped in `<job_offer>` and the prompt says it's data, not instructions. The free reasoning model sometimes spends its whole 8192-token output budget thinking (always, on an 11-page contract in one go), so: the offer is split into parts of ~4,000 characters (`split_offer`, at most 8 parts), each part gets its own 8 law sections, each call uses `reasoning={"effort": "low"}` and is retried up to `JOB_OFFER_REVIEW_ATTEMPTS` (3) times when empty. `info` ("missing") findings are dropped for multi-part offers, since one part can't tell what's missing. Parts that never answer are listed in `parts_unchecked` with `failure="partial"` (status stays done), and Retry reruns the whole offer. Set `JOB_OFFER_MODEL` to use a different model for this only (the OpenRouter account's guardrail must allow it). If the queue is down the offer is marked failed, not left pending. Failed offers carry a `failure` reason: `no_text` (e.g. a scanned PDF, whose pages are images; there is no OCR yet), `unreadable`, `model` or `queue` (and `partial` on a done offer). The UI explains `no_text`/`unreadable` and only offers Retry for the others.
 - Frontend: `/hr` (`HrHomePage`: company setup, dashboard charts, job offer check) and `/workplace` for workers (`WorkplacePage`).
 - Env: `HR_MIN_GROUP_SIZE`, `HR_REPORTS_PER_MONTH`, `JOB_OFFER_MODEL`, `JOB_OFFER_REVIEW_ATTEMPTS`, `CELERY_TASK_ALWAYS_EAGER` (1 = run tasks in the request, so dev works without a worker).
+
+### Staff tools (`apps/staff`, no models)
+- Staff are Django staff users (`is_staff`, returned on `/api/auth/me/` and read-only there). In the app they land on `/staff` (Verification) and only see that page; `RequireRole` sends staff there, `RequireStaff` keeps everyone else out. Create staff with `createsuperuser` or the Django admin; nobody can make themselves staff.
+- `GET /api/staff/overview/` (counts), `GET /api/staff/firms/` and `/api/staff/companies/` (`?status=pending|verified|all`, `q`), `POST .../<id>/verify/` and `.../<id>/unverify/`. All `IsAdminUser`.
+- Firms and companies record `verified_by`. Always use the models' `verify(by=...)` / `unverify()`: the staff API, the Django admin actions and the "changed law society number / company name loses verification" rules all go through them.
+- Nothing in the staff API exposes cases, chats, reports, messages or job offers.
+
+### Page not found
+- The app's `NotFoundPage` (owl between two 4s, home and back buttons, crisis line) covers unknown routes and issues, firms or threads that don't exist or aren't shared.
+- With DEBUG off, Django's `handler404` (`config/urls.py`) returns `{"detail": "Not found."}` for `/api/...` and a small Boardwise page for anything else.
 
 ### Voice dictation (`speech/` service + `apps/speech`)
 - The chat box has a **Speak** button. While listening, the box is read-only: finished words show solid and the words still being recognised show grey. On **Stop** it becomes editable at once: the grey words go in, then the final text replaces them unless edited. **Send** while listening stops, waits up to 1 s, then sends.

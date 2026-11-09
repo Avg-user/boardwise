@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.hr',
     'apps.knowledge',
     'apps.speech',
+    'apps.staff',
 ]
 
 MIDDLEWARE = [
