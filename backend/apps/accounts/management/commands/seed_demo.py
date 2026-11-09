@@ -15,7 +15,7 @@ from apps.tasks.models import Task
 
 PASSWORD = "demo1234"
 DEMO_USERS = [
-    ("victim", "victim"), ("hr", "hr"), ("lawfirm", "law_firm"),
+    ("JohnDoe", "victim"), ("hr", "hr"), ("lawfirm", "law_firm"),
     ("prairielaw", "law_firm"), ("justiceco", "law_firm"), ("newfirm", "law_firm"), ("newhr", "hr"),
     ("staff", "victim"),  # Boardwise staff (is_staff): the role doesn't matter, they use /staff
 ]
@@ -91,7 +91,7 @@ DEMO_FINDINGS = [
 
 
 class Command(BaseCommand):
-    help = "Create demo accounts (victim, hr, lawfirm) and a sample case. Safe to re-run."
+    help = "Create demo accounts (JohnDoe, hr, lawfirm) and a sample case. Safe to re-run."
 
     def add_arguments(self, parser):
         parser.add_argument("--reset", action="store_true", help="Delete existing demo users and their data first.")
@@ -117,14 +117,14 @@ class Command(BaseCommand):
         for username, data in DEMO_FIRMS.items():
             LawFirmProfile.objects.get_or_create(user=users[username], defaults=data)
 
-        self._create_company(users["hr"], users["victim"])
+        self._create_company(users["hr"], users["JohnDoe"])
         if not HRMembership.objects.filter(user=users["newhr"]).exists():
             pending = Company.objects.create(name=PENDING_COMPANY, province="AB", city="Red Deer")
             HRMembership.objects.create(user=users["newhr"], company=pending)
 
-        self._create_firm_conversation(users["victim"], users["lawfirm"])
+        self._create_firm_conversation(users["JohnDoe"], users["lawfirm"])
 
-        victim = users["victim"]
+        victim = users["JohnDoe"]
         if victim.cases.exists():
             self.stdout.write("Demo case already exists (use --reset to recreate).")
         else:
@@ -166,7 +166,7 @@ class Command(BaseCommand):
         req.save()
 
     def _create_company(self, hr, victim):
-        """A verified company managed by "hr", with "victim" as an opted-in worker and sample data."""
+        """A verified company managed by "hr", with "JohnDoe" as an opted-in worker and sample data."""
         company = HRMembership.objects.filter(user=hr).values_list("company", flat=True).first()
         if company:
             return
@@ -189,7 +189,7 @@ class Command(BaseCommand):
         )
 
     def _create_firm_conversation(self, worker, firm_user):
-        """A first message from "victim" to Harbour Employment Law, and the firm's reply."""
+        """A first message from "JohnDoe" to Harbour Employment Law, and the firm's reply."""
         firm = firm_user.law_firm_profile
         if FirmThread.objects.filter(worker=worker, firm=firm).exists():
             return
