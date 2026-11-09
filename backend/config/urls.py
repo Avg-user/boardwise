@@ -8,7 +8,7 @@ from apps.cases.views import CaseShareViewSet, CaseViewSet, TimelineEntryViewSet
 from apps.chat.views import ConversationViewSet
 from apps.documents.views import DocumentViewSet
 from apps.hr.views import JobOfferViewSet, companies, hr_dashboard, my_company, report_incident, workplace
-from apps.lawfirms.views import CaseMatchViewSet, FirmRequestViewSet, LawFirmViewSet, my_profile
+from apps.lawfirms.views import CaseMatchViewSet, FirmRequestViewSet, FirmThreadViewSet, LawFirmViewSet, my_profile
 from apps.speech.views import DictationTicketView
 from apps.tasks.views import TaskViewSet
 
@@ -20,6 +20,7 @@ def health(request):
 router = DefaultRouter()
 router.register("cases", CaseViewSet, basename="case")
 router.register("lawfirms", LawFirmViewSet, basename="lawfirm")
+router.register("messages", FirmThreadViewSet, basename="messages")
 
 hr_router = DefaultRouter()
 hr_router.register("job-offers", JobOfferViewSet, basename="hr-job-offers")

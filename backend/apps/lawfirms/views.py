@@ -1,7 +1,7 @@
 import logging
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Exists, F, OuterRef, Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
@@ -12,9 +12,10 @@ from rest_framework.response import Response
 from apps.cases.models import CaseShare
 from apps.cases.permissions import CaseScopedMixin
 
-from .models import LawFirmProfile, MatchRequest
-from .serializers import (CaseMatchRequestSerializer, FirmMatchRequestSerializer, LawFirmOwnSerializer,
-                          LawFirmPublicSerializer)
+from .models import FirmMessage, FirmThread, LawFirmProfile, MatchRequest
+from .serializers import (CaseMatchRequestSerializer, FirmMatchRequestSerializer, FirmThreadDetailSerializer,
+                          FirmThreadSerializer, LawFirmOwnSerializer, LawFirmPublicSerializer, ReplySerializer,
+                          StartThreadSerializer)
 
 logger = logging.getLogger(__name__)
 
@@ -145,3 +146,109 @@ class CaseMatchViewSet(CaseScopedMixin, mixins.ListModelMixin, mixins.CreateMode
         else:
             raise ValidationError("This request is already closed.")
         req.save()
+
+
+# --- Messages between workers and firms -------------------------------------------------------
+
+def _side(user) -> str:
+    """'worker' or 'firm'. Anyone else (HR, a firm without a profile) can't use messages."""
+    if user.role == "victim":
+        return "worker"
+    if user.role == "law_firm" and LawFirmProfile.objects.filter(user=user).exists():
+        return "firm"
+    raise PermissionDenied("Messages are between workers and law firms.")
+
+
+def _threads(user, side: str):
+    qs = FirmThread.objects.filter(worker=user) if side == "worker" else FirmThread.objects.filter(firm__user=user)
+    other = "firm" if side == "worker" else "worker"
+    read_at = f"{side}_read_at"
+    # Unread: the other side wrote after this side last opened the thread.
+    newer = FirmMessage.objects.filter(thread=OuterRef("pk"), sender=other).filter(
+        Q(**{f"thread__{read_at}__isnull": True}) | Q(created_at__gt=F(f"thread__{read_at}"))
+    )
+    return qs.select_related("firm").annotate(unread=Exists(newer))
+
+
+@extend_schema(responses=FirmThreadSerializer)
+class FirmThreadViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Conversations between a worker and a firm. Workers start them (POST); both sides reply.
+
+    Only the two participants can see a thread; anyone else gets 404. Opening a thread marks it
+    read for the person opening it. Message bodies are never logged.
+    """
+
+    queryset = FirmThread.objects.none()
+    lookup_value_regex = r"\d+"
+
+    def get_side(self):
+        if not hasattr(self, "_side"):
+            self._side = _side(self.request.user)
+        return self._side
+
+    def get_queryset(self):
+        return _threads(self.request.user, self.get_side())
+
+    def get_serializer_class(self):
+        return FirmThreadDetailSerializer if self.action == "retrieve" else FirmThreadSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        if self.request.user.is_authenticated:
+            ctx["side"] = self.get_side()
+        return ctx
+
+    def retrieve(self, request, *args, **kwargs):
+        thread = self.get_object()
+        FirmThread.objects.filter(pk=thread.pk).update(**{f"{self.get_side()}_read_at": timezone.now()})
+        thread.unread = False
+        return Response(self.get_serializer(thread).data)
+
+    @extend_schema(request=StartThreadSerializer, responses={201: FirmThreadDetailSerializer})
+    @transaction.atomic
+    def create(self, request):
+        """Worker only: write to a listed firm. A second message to the same firm joins the
+        existing conversation (the subject stays the first one)."""
+        if self.get_side() != "worker":
+            raise PermissionDenied("Only workers can start a conversation.")
+        s = StartThreadSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        now = timezone.now()
+        thread, created = FirmThread.objects.select_for_update().get_or_create(
+            worker=request.user, firm=s.validated_data["firm"],
+            defaults={"subject": s.validated_data["subject"]},
+        )
+        FirmMessage.objects.create(thread=thread, sender="worker", body=s.validated_data["body"])
+        FirmThread.objects.filter(pk=thread.pk).update(last_message_at=now, worker_read_at=now)
+        logger.info("Firm message: thread=%s firm=%s new_thread=%s", thread.pk, thread.firm_id, created)
+        thread = self.get_queryset().get(pk=thread.pk)
+        return Response(FirmThreadDetailSerializer(thread, context=self.get_serializer_context()).data,
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @extend_schema(request=ReplySerializer, responses={201: FirmThreadDetailSerializer})
+    @action(detail=True, methods=["post"])
+    @transaction.atomic
+    def reply(self, request, pk=None):
+        thread = self.get_object()
+        side = self.get_side()
+        if side == "firm" and not thread.firm.is_verified:
+            raise PermissionDenied("Your firm must be verified to write to workers.")
+        s = ReplySerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        now = timezone.now()
+        FirmMessage.objects.create(thread=thread, sender=side, body=s.validated_data["body"])
+        FirmThread.objects.filter(pk=thread.pk).update(last_message_at=now, **{f"{side}_read_at": now})
+        logger.info("Firm message: thread=%s from=%s", thread.pk, side)
+        thread = self.get_queryset().get(pk=thread.pk)
+        return Response(FirmThreadDetailSerializer(thread, context=self.get_serializer_context()).data,
+                        status=status.HTTP_201_CREATED)
+
+    @extend_schema(responses={200: {"type": "object", "properties": {"unread": {"type": "integer"}}}})
+    @action(detail=False, methods=["get"])
+    def unread(self, request):
+        """How many conversations have something new, for the nav badge."""
+        try:
+            count = self.get_queryset().filter(unread=True).count()
+        except PermissionDenied:
+            count = 0  # HR accounts and firms without a profile have no messages
+        return Response({"unread": count})

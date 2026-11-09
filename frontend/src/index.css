@@ -2477,7 +2477,178 @@ p.message--user {
   margin: 0;
 }
 
-/* The first-email template on a firm's page */
+/* ---------------------------------------------------------------------------------------------
+ * Messages between workers and firms
+ * ------------------------------------------------------------------------------------------- */
+.nav-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-inline-start: 0.375rem;
+  padding-inline: 0.3125rem;
+  border-radius: 999px;
+  background: var(--color-action);
+  color: var(--color-on-action);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.thread-list {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 52rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thread-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.thread-card:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.thread-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+  grid-column: 1;
+}
+
+.thread-card__who {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 650;
+}
+
+.thread-card__date {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.thread-card__subject {
+  grid-column: 1;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-stretch: 95%;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.thread-card__preview {
+  grid-column: 1;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-card[data-unread='true'] .thread-card__preview {
+  color: var(--color-text);
+}
+
+.thread-card__arrow {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-faint);
+}
+
+.unread-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.thread-header {
+  margin-bottom: 1.25rem;
+}
+
+.thread-header h1 {
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.thread-header .page-description {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.thread {
+  max-width: 52rem;
+  min-height: 22rem;
+}
+
+.thread + .chat__footnote {
+  max-width: 52rem;
+  margin-top: 0.625rem;
+}
+
+.thread__log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.25rem;
+  list-style: none;
+}
+
+.thread-message {
+  display: grid;
+  gap: 0.25rem;
+  max-width: min(36rem, 88%);
+}
+
+.thread-message--mine {
+  align-self: flex-end;
+  justify-items: end;
+}
+
+.thread-message__meta {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.thread-message__body {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 14px 14px 14px 4px;
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.thread-message--mine .thread-message__body {
+  border-color: transparent;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--color-sunken);
+}
+
+/* The first message to a firm, on the firm's page */
 .email-tips {
   display: grid;
   gap: 0.25rem;

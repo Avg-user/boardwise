@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import LawFirmProfile, MatchRequest
+from .models import FirmThread, LawFirmProfile, MatchRequest
 
 
 @admin.register(LawFirmProfile)
@@ -27,3 +27,11 @@ class MatchRequestAdmin(admin.ModelAdmin):
     list_display = ["id", "case_id", "firm", "status", "created_at"]
     list_filter = ["status"]
     exclude = ["message"]
+
+
+@admin.register(FirmThread)
+class FirmThreadAdmin(admin.ModelAdmin):
+    # IDs and dates only: the subject and messages are the worker's and firm's private words.
+    list_display = ["id", "firm", "created_at", "last_message_at"]
+    fields = ["firm", "created_at", "last_message_at"]
+    readonly_fields = fields

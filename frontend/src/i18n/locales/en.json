@@ -60,7 +60,8 @@
       "law_firm": "Law firm"
     },
     "firmProfile": "Profile",
-    "workplace": "Workplace"
+    "workplace": "Workplace",
+    "messages": "Messages"
   },
   "auth": {
     "signIn": "Sign in",
@@ -339,7 +340,8 @@
       "statsText": "Show the kinds of cases your firm handles.",
       "pending": "Requests waiting",
       "shared": "Cases shared with you",
-      "accepted": "Accepted requests"
+      "accepted": "Accepted requests",
+      "unreadMessages": "Unread messages"
     }
   },
   "lawyers": {
@@ -626,22 +628,46 @@
     "limit": "You've sent the most reports allowed this month. You can send more next month."
   },
   "firmEmail": {
-    "title": "Write to this firm yourself",
-    "intro": "Prefer to email? Here's a first email with what firms usually ask about. Edit it as you like. Nothing you type here is saved.",
+    "title": "Message this firm",
+    "intro": "Write to the firm here on Boardwise. Their reply shows up in Messages. The firm doesn't see your username or your issues, only what you write.",
     "tipBrackets": "Replace the parts in [square brackets], and delete any you'd rather not share yet.",
-    "tipPrivate": "Keep it short. Don't attach documents or the full story until you've spoken and the firm has agreed to help.",
+    "tipPrivate": "Keep it short. Leave out the full story and anything you'd rather say in person until the firm has agreed to help.",
     "tipConflict": "Firms ask for your employer's name first to check they don't already work for them (a \"conflict check\").",
     "subjectLabel": "Subject",
-    "bodyLabel": "Email",
+    "bodyLabel": "Message",
     "subject": "New client inquiry: workplace issue",
-    "body": "Hello {{firm}} team,\n\nI found your firm on Boardwise and I'm looking for help with a workplace issue in [city, province].\n\nIn short: [one or two sentences about what's happening, for example \"My manager has made repeated comments about my appearance, and I was moved off a project after I reported it.\"]\n\nBefore we go further, I have a few questions:\n\n1. Are you taking on new clients for this kind of matter?\n2. {{consultation}}\n3. How do you charge (hourly, flat fee or contingency), and roughly what would a first step cost?\n4. Could we talk in [English / French / another language]?\n\nFor your conflict check, my employer is [employer name].\n\nDates that may matter: [for example \"the last incident was on May 12\" or \"I was let go on June 3\"].\n\nThe best way to reach me is [personal phone or personal email], ideally [days and times]. Please don't contact me through my work email or work phone.\n\nThank you,\n[Your name]",
+    "body": "Hello {{firm}} team,\n\nI found your firm on Boardwise and I'm looking for help with a workplace issue in [city, province].\n\nIn short: [one or two sentences about what's happening, for example \"My manager has made repeated comments about my appearance, and I was moved off a project after I reported it.\"]\n\nBefore we go further, I have a few questions:\n\n1. Are you taking on new clients for this kind of matter?\n2. {{consultation}}\n3. How do you charge (hourly, flat fee or contingency), and roughly what would a first step cost?\n4. Could we talk in [English / French / another language]?\n\nFor your conflict check, my employer is [employer name].\n\nDates that may matter: [for example \"the last incident was on May 12\" or \"I was let go on June 3\"].\n\nYou can reply to me here on Boardwise. If you'd rather call, my number is [personal phone], ideally [days and times]. Please don't contact me through my work email or work phone.\n\nThank you,\n[Your name]",
     "consultationFree": "Your profile mentions a free first consultation. How do I book it, and how long is it?",
     "consultationAsk": "Do you offer a free or low-cost first consultation? If not, what does a first meeting cost?",
-    "open": "Open in my email app",
-    "copy": "Copy email",
-    "copied": "Copied",
-    "copyFailed": "Couldn't copy automatically. Select the text and copy it yourself.",
-    "sendTo": "It opens addressed to {{email}}. Send it from your personal email.",
-    "noEmail": "This firm hasn't listed an email. Copy the text and send it through their website or contact form."
+    "existing": "You're already talking with this firm. Continue the conversation in Messages.",
+    "openConversation": "Open conversation",
+    "send": "Send message",
+    "sending": "Sending…",
+    "privacy": "Only this firm can read your message. Don't include anything you wouldn't want the firm to know yet."
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Your conversations with law firms. Firms see only what you write here, never your username or your issues.",
+    "firmDescription": "Messages from workers. You see only what they write, not who they are, until they choose to tell you or share an issue.",
+    "findFirm": "Find a lawyer",
+    "empty": "No messages yet. Open a firm's page in Find a lawyer to write to them.",
+    "emptyFirm": "No messages yet. Workers can write to your firm once it's listed.",
+    "aWorker": "A worker",
+    "you": "You",
+    "unread": "unread",
+    "unreadCount_one": "{{count}} conversation with new messages",
+    "unreadCount_other": "{{count}} conversations with new messages",
+    "back": "All messages",
+    "withFirm": "Conversation with {{firm}}",
+    "withWorker": "Conversation with a worker. You don't see their username.",
+    "viewFirm": "View the firm's page",
+    "logLabel": "Messages in this conversation",
+    "replyLabel": "Your reply",
+    "replyPlaceholder": "Write to {{name}}…",
+    "send": "Send",
+    "sendFailed": "Your message didn't send. Check your connection and try again.",
+    "cannotReply": "This firm can't reply right now because it isn't verified at the moment.",
+    "workerFootnote": "Only you and this firm can read this conversation. Talking here doesn't share any of your issues.",
+    "firmFootnote": "Only your firm and this worker can read this conversation. Press Ctrl+Enter or Cmd+Enter to send."
   }
 }

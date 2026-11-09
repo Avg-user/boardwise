@@ -220,3 +220,96 @@ class MatchFlowTests(APITestCase):
         self.client.force_authenticate(self.firm_user)
         [req] = self.client.get("/api/lawfirms/me/requests/").data
         self.assertIsNone(req["case_id"])
+
+
+class FirmMessageTests(APITestCase):
+    """Two-way messages: workers start them, both sides reply, nobody else sees anything."""
+
+    def setUp(self):
+        self.worker = User.objects.create_user("jordan_private", password="x", role=User.Role.VICTIM)
+        self.firm_user, self.firm = make_firm("firm")
+        self.other_firm_user, self.other_firm = make_firm("firm2", name="Other Firm")
+
+    def start(self, firm=None, body="Are you taking new clients?", subject="New client inquiry"):
+        self.client.force_authenticate(self.worker)
+        return self.client.post("/api/messages/", {"firm": (firm or self.firm).pk, "subject": subject,
+                                                   "body": body}, format="json")
+
+    def test_worker_starts_and_firm_replies(self):
+        r = self.start()
+        self.assertEqual(r.status_code, 201)
+        thread = r.data["id"]
+        self.assertEqual([(m["sender"], m["mine"]) for m in r.data["messages"]], [("worker", True)])
+
+        self.client.force_authenticate(self.firm_user)
+        self.assertEqual(self.client.get("/api/messages/unread/").data, {"unread": 1})
+        [row] = self.client.get("/api/messages/").data
+        self.assertTrue(row["unread"])
+        self.assertEqual(row["last_message"]["preview"], "Are you taking new clients?")
+        detail = self.client.get(f"/api/messages/{thread}/").data
+        self.assertEqual(detail["messages"][0]["mine"], False)
+        self.assertEqual(self.client.get("/api/messages/unread/").data, {"unread": 0})  # opened = read
+
+        r = self.client.post(f"/api/messages/{thread}/reply/", {"body": "Yes, we are."}, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.client.force_authenticate(self.worker)
+        self.assertEqual(self.client.get("/api/messages/unread/").data, {"unread": 1})
+        msgs = self.client.get(f"/api/messages/{thread}/").data["messages"]
+        self.assertEqual([(m["sender"], m["mine"]) for m in msgs], [("worker", True), ("firm", False)])
+
+    def test_firm_never_sees_who_the_worker_is(self):
+        self.start()
+        self.client.force_authenticate(self.firm_user)
+        [row] = self.client.get("/api/messages/").data
+        detail = self.client.get(f"/api/messages/{row['id']}/").data
+        for payload in (row, detail):
+            self.assertNotIn("worker", payload)
+            self.assertNotIn(self.worker.username, str(payload))
+
+    def test_second_message_to_same_firm_joins_the_thread(self):
+        first = self.start().data["id"]
+        r = self.start(body="Following up.", subject="Different subject")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["id"], first)
+        self.assertEqual(r.data["subject"], "New client inquiry")
+        self.assertEqual(len(r.data["messages"]), 2)
+
+    def test_only_participants_can_see_or_reply(self):
+        thread = self.start().data["id"]
+        strangers = [self.other_firm_user, User.objects.create_user("w2", password="x", role=User.Role.VICTIM)]
+        for user in strangers:
+            self.client.force_authenticate(user)
+            self.assertEqual(self.client.get("/api/messages/").data, [])
+            self.assertEqual(self.client.get(f"/api/messages/{thread}/").status_code, 404)
+            r = self.client.post(f"/api/messages/{thread}/reply/", {"body": "hi"}, format="json")
+            self.assertEqual(r.status_code, 404)
+
+    def test_firms_cannot_start_and_hr_has_no_messages(self):
+        self.client.force_authenticate(self.firm_user)
+        r = self.client.post("/api/messages/", {"firm": self.other_firm.pk, "subject": "x", "body": "x"},
+                             format="json")
+        self.assertEqual(r.status_code, 403)
+        hr = User.objects.create_user("h", password="x", role=User.Role.HR)
+        self.client.force_authenticate(hr)
+        self.assertEqual(self.client.get("/api/messages/").status_code, 403)
+        self.assertEqual(self.client.get("/api/messages/unread/").data, {"unread": 0})
+
+    def test_only_listed_firms_can_be_written_to(self):
+        _, hidden = make_firm("hidden", verified=False)
+        self.assertEqual(self.start(firm=hidden).status_code, 400)
+
+    def test_unverified_firm_cannot_reply_but_worker_still_can(self):
+        thread = self.start().data["id"]
+        self.firm.is_verified = False
+        self.firm.save()
+        self.client.force_authenticate(self.firm_user)
+        self.assertFalse(self.client.get(f"/api/messages/{thread}/").data["can_reply"])
+        self.assertEqual(self.client.post(f"/api/messages/{thread}/reply/", {"body": "x"}, format="json")
+                         .status_code, 403)
+        self.client.force_authenticate(self.worker)
+        self.assertEqual(self.client.post(f"/api/messages/{thread}/reply/", {"body": "x"}, format="json")
+                         .status_code, 201)
+
+    def test_empty_and_overlong_messages_rejected(self):
+        self.assertEqual(self.start(body="   ").status_code, 400)
+        self.assertEqual(self.start(body="x" * 5001).status_code, 400)

@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { logout } from '../api/auth.ts'
+import { UNREAD_KEY, unreadCount } from '../api/messages.ts'
 import type { User, UserRole } from '../api/types.ts'
 import { endSessionNow } from '../auth/privacy.ts'
 import { useIdleLock } from '../auth/useIdleLock.ts'
@@ -17,11 +19,13 @@ const NAV_ITEMS = {
   victim: [
     { to: '/', labelKey: 'nav.issues' },
     { to: '/lawyers', labelKey: 'nav.lawyers' },
+    { to: '/messages', labelKey: 'nav.messages' },
     { to: '/workplace', labelKey: 'nav.workplace' },
   ],
   hr: [{ to: '/hr', labelKey: 'nav.hr' }],
   law_firm: [
     { to: '/firm', labelKey: 'nav.firm' },
+    { to: '/messages', labelKey: 'nav.messages' },
     { to: '/firm/profile', labelKey: 'nav.firmProfile' },
   ],
 } as const satisfies Record<UserRole, readonly { to: string; labelKey: string }[]>
@@ -32,6 +36,19 @@ const THEMES: Record<UserRole, string | undefined> = {
   victim: undefined,
   hr: 'hr',
   law_firm: 'firm',
+}
+
+/** Conversations with something new, beside "Messages" in the nav. */
+function UnreadBadge() {
+  const { t } = useTranslation()
+  const { data: count } = useQuery({ queryKey: UNREAD_KEY, queryFn: unreadCount, refetchInterval: 60_000 })
+  if (!count) return null
+  return (
+    <span className="nav-badge">
+      {count}
+      <span className="visually-hidden"> {t('messages.unreadCount', { count })}</span>
+    </span>
+  )
 }
 
 function AppLayout() {
@@ -92,8 +109,9 @@ function AppLayout() {
           {user && (
             <nav className="app-nav" aria-label={t('layout.mainNavigation')}>
               {NAV_ITEMS[user.role].map(({ to, labelKey }) => (
-                <NavLink key={to} to={to} end>
+                <NavLink key={to} to={to} end={to !== '/messages'}>
                   {t(labelKey)}
+                  {to === '/messages' && <UnreadBadge />}
                 </NavLink>
               ))}
             </nav>

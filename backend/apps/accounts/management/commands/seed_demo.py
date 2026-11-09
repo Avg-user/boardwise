@@ -10,7 +10,7 @@ from apps.cases.models import Case, CaseShare, TimelineEntry
 from apps.chat.models import Conversation, Message
 from apps.hr.dashboard import add_months
 from apps.hr.models import Company, HRMembership, IncidentReport, JobOffer, WorkerMembership
-from apps.lawfirms.models import LawFirmProfile, MatchRequest
+from apps.lawfirms.models import FirmMessage, FirmThread, LawFirmProfile, MatchRequest
 from apps.tasks.models import Task
 
 PASSWORD = "demo1234"
@@ -114,6 +114,8 @@ class Command(BaseCommand):
 
         self._create_company(users["hr"], users["victim"])
 
+        self._create_firm_conversation(users["victim"], users["lawfirm"])
+
         victim = users["victim"]
         if victim.cases.exists():
             self.stdout.write("Demo case already exists (use --reset to recreate).")
@@ -177,3 +179,27 @@ class Command(BaseCommand):
             province="AB", status=JobOffer.Status.DONE, findings=DEMO_FINDINGS, reviewed_at=timezone.now(),
             summary="Sample review: several terms fall below Alberta's employment standards.",
         )
+
+    def _create_firm_conversation(self, worker, firm_user):
+        """A first message from "victim" to Harbour Employment Law, and the firm's reply."""
+        firm = firm_user.law_firm_profile
+        if FirmThread.objects.filter(worker=worker, firm=firm).exists():
+            return
+        thread = FirmThread.objects.create(worker=worker, firm=firm, subject="New client inquiry: workplace issue")
+        FirmMessage.objects.create(thread=thread, sender="worker", body=(
+            "Hello Harbour Employment Law team,\n\n"
+            "I found your firm on Boardwise and I'm looking for help with a workplace issue in Calgary, AB.\n\n"
+            "In short: my team lead has made repeated comments about my appearance, and I was left out of a "
+            "project meeting after I raised it.\n\n"
+            "Before we go further, I have a few questions:\n\n"
+            "1. Are you taking on new clients for this kind of matter?\n"
+            "2. Your profile mentions a free first consultation. How do I book it, and how long is it?\n"
+            "3. How do you charge, and roughly what would a first step cost?\n\n"
+            "You can reply to me here on Boardwise. Please don't contact me through my work email.\n\n"
+            "Thank you"))
+        FirmMessage.objects.create(thread=thread, sender="firm", body=(
+            "Thanks for reaching out. Yes, we're taking new clients for harassment matters. The free "
+            "consultation is 30 minutes by phone or video. Could you tell us your employer's name so we can "
+            "run a conflict check, and a few times that work for you this week?"))
+        now = timezone.now()
+        FirmThread.objects.filter(pk=thread.pk).update(last_message_at=now, firm_read_at=now)
