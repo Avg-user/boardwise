@@ -21,6 +21,15 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
+// Wide screens show the chat beside one of these at a time, in a column as tall as the chat.
+const SIDE_TABS = [
+  { id: 'timeline', labelKey: 'case.tabs.timeline' },
+  { id: 'steps', labelKey: 'case.tabs.steps' },
+  { id: 'lawyers', labelKey: 'case.tabs.lawyers' },
+] as const
+
+type SideTabId = (typeof SIDE_TABS)[number]['id']
+
 function CasePage() {
   const { t } = useTranslation()
   const { user } = useCurrentUser()
@@ -28,6 +37,7 @@ function CasePage() {
   const caseId = Number(caseIdParam)
   const isValidId = Number.isInteger(caseId) && caseId > 0
   const [activeTab, setActiveTab] = useState<TabId>('chat')
+  const [sideTab, setSideTab] = useState<SideTabId>('timeline')
 
   const caseQuery = useQuery({
     queryKey: ['cases', caseId],
@@ -57,11 +67,19 @@ function CasePage() {
   return (
     <>
       <title>{`${title} · ${t('app.name')}`}</title>
-      <Link className="back-link" to={user ? getHome(user) : '/'}>
-        <Icon name="chevronLeft" />
-        {canEdit ? t('case.back') : t('case.backPartner')}
-      </Link>
-      <CaseHeader caseItem={caseQuery.data} />
+      {/* On wide screens the back link sits beside the title as an icon, which leaves room
+          for the whole chat card on screen. Its label stays for screen readers and on hover. */}
+      <div className="case-top">
+        <Link
+          className="back-link"
+          to={user ? getHome(user) : '/'}
+          title={canEdit ? t('case.back') : t('case.backPartner')}
+        >
+          <Icon name="chevronLeft" />
+          <span className="back-link__label">{canEdit ? t('case.back') : t('case.backPartner')}</span>
+        </Link>
+        <CaseHeader caseItem={caseQuery.data} />
+      </div>
 
       <div className="case-tabs">
         {TABS.map((tab) => (
@@ -81,22 +99,37 @@ function CasePage() {
           <ChatPanel caseId={caseId} caseTitle={title} canEdit={canEdit} />
         </section>
         <div className="case-side">
-          <section className="case-pane panel" data-active={activeTab === 'timeline'}>
-            <TimelinePanel
-              caseId={caseId}
-              canEdit={canEdit}
-              onSessionSelect={() => setActiveTab('chat')}
-            />
-          </section>
-          <section className="case-pane panel" data-active={activeTab === 'steps'}>
-            <NextStepsPanel caseId={caseId} canEdit={canEdit} />
-          </section>
-          {/* Only the owner sees who they've contacted; firms never see each other. */}
-          {canEdit && (
-            <section className="case-pane panel" data-active={activeTab === 'steps'}>
-              <MatchesPanel caseId={caseId} />
+          {/* data-active is the phone tab, data-side the wide-screen one. */}
+          <div className="side-tabs">
+            {SIDE_TABS.filter((tab) => canEdit || tab.id !== 'lawyers').map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={sideTab === tab.id}
+                onClick={() => setSideTab(tab.id)}
+              >
+                {t(tab.labelKey)}
+              </button>
+            ))}
+          </div>
+          <div className="case-side__panes">
+            <section className="case-pane panel" data-active={activeTab === 'timeline'} data-side={sideTab === 'timeline'}>
+              <TimelinePanel
+                caseId={caseId}
+                canEdit={canEdit}
+                onSessionSelect={() => setActiveTab('chat')}
+              />
             </section>
-          )}
+            <section className="case-pane panel" data-active={activeTab === 'steps'} data-side={sideTab === 'steps'}>
+              <NextStepsPanel caseId={caseId} canEdit={canEdit} />
+            </section>
+            {/* Only the owner sees who they've contacted; firms never see each other. */}
+            {canEdit && (
+              <section className="case-pane panel" data-active={activeTab === 'steps'} data-side={sideTab === 'lawyers'}>
+                <MatchesPanel caseId={caseId} />
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </>

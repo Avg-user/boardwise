@@ -1,8 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { closeConversation } from '../../api/chat.ts'
+import { listTasks, tasksQueryKey } from '../../api/tasks.ts'
 import type { ChatMessage } from '../../api/types.ts'
 import { OwlMark } from '../brand/Owl.tsx'
 import ActionMenu from '../ActionMenu.tsx'
@@ -159,7 +160,10 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   }, [])
   const [restoredFailure, setRestoredFailure] = useState<PendingSend | null>(null)
   const [dismissedCrisisId, setDismissedCrisisId] = useState<number | null>(null)
-  const endRef = useRef<HTMLDivElement>(null)
+  const chatRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const followRef = useRef(true)
   const crisisRef = useRef<HTMLDivElement>(null)
   const dictationBoxRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -225,13 +229,85 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
     }
   }, [isNewChat, pending?.conversationId, navigate])
 
-  // Follow new content, unless the person has scrolled up to read earlier messages.
+  // Follow new content, unless the person has scrolled up to read earlier messages. A chat
+  // opens at its newest message, and sending always jumps down to show the message sent.
   useEffect(() => {
-    const end = endRef.current
-    if (!showCrisisBanner && end && end.getBoundingClientRect().top <= window.innerHeight + 240) {
-      end.scrollIntoView({ block: 'end' })
+    followRef.current = true
+  }, [conversationId, pendingText])
+  useEffect(() => {
+    const scroller = scrollRef.current
+    if (scroller && followRef.current && !showCrisisBanner) {
+      scroller.scrollTop = scroller.scrollHeight
     }
-  }, [messages.length, pendingText, streamedText, showCrisisBanner])
+  }, [conversationId, messages.length, pendingText, streamedText, showCrisisBanner])
+
+  // Also follow when the messages change size without a new one, e.g. when the font loads and
+  // lines rewrap, or a reply's Listen button appears.
+  const showCrisisRef = useRef(showCrisisBanner)
+  useEffect(() => {
+    showCrisisRef.current = showCrisisBanner
+  }, [showCrisisBanner])
+  useEffect(() => {
+    const scroller = scrollRef.current
+    const log = scroller?.firstElementChild
+    if (!scroller || !log) return
+    const observer = new ResizeObserver(() => {
+      if (followRef.current && !showCrisisRef.current) scroller.scrollTop = scroller.scrollHeight
+    })
+    observer.observe(log)
+    return () => observer.disconnect()
+  }, [])
+
+  // Wide screens: size the card so all of it, down to the line below it, is on screen when the
+  // issue opens. Measured rather than set in CSS, because what's above it varies (a long issue
+  // title wraps). Phones keep the CSS height: the card fills the screen once scrolled to.
+  useLayoutEffect(() => {
+    const chat = chatRef.current
+    const card = cardRef.current
+    if (!chat || !card) return
+    // Set on the page layout when there is one, so the side column can match the card's height.
+    const target = card.closest<HTMLElement>('.case-layout') ?? card
+    const wide = window.matchMedia('(min-width: 48rem)')
+    let frame = 0
+    const fit = () => {
+      frame = 0
+      if (!wide.matches) {
+        target.style.removeProperty('--chat-fit')
+        return
+      }
+      // Layout positions (offsetTop), which the page's fade-in animation doesn't shift.
+      let top = 0
+      for (let element: HTMLElement | null = card; element; element = element.offsetParent as HTMLElement | null) {
+        top += element.offsetTop
+      }
+      // The card is the first thing in .chat; what follows it is the gap and the safety line.
+      const below = chat.offsetHeight - card.offsetHeight
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+      const height = Math.max(24 * rem, Math.floor(window.innerHeight - top - below - rem))
+      target.style.setProperty('--chat-fit', `${height}px`)
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(fit)
+    }
+    fit()
+    // Anything above the card changing size (the title renamed, a notice) moves where it starts.
+    const observer = new ResizeObserver(schedule)
+    observer.observe(document.body)
+    window.addEventListener('resize', schedule)
+    wide.addEventListener('change', schedule)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', schedule)
+      wide.removeEventListener('change', schedule)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  /** Whether the log is at (or near) its newest message, so new content should keep it there. */
+  function updateFollow() {
+    const scroller = scrollRef.current
+    if (scroller) followRef.current = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120
+  }
 
   // The banner can be taller than a phone screen, so bring its top ("Call 911") into view.
   useEffect(() => {
@@ -315,7 +391,16 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
     setIsExporting(true)
     setExportFailed(false)
     try {
-      const { downloadTranscript } = await import('../../export/transcriptPdf.ts')
+      const [{ downloadTranscript }, tasks] = await Promise.all([
+        import('../../export/transcriptPdf.ts'),
+        queryClient.fetchQuery({ queryKey: tasksQueryKey(caseId), queryFn: () => listTasks(caseId) }),
+      ])
+      const dateFormat = new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: 'medium' })
+      // Due dates are calendar days ("2026-11-12"), so read them as local dates, not UTC.
+      const formatDay = (day: string) => {
+        const [year, month, date] = day.split('-').map(Number)
+        return dateFormat.format(new Date(year, month - 1, date))
+      }
       // A generic file name: the issue title could be sensitive in a downloads list.
       const day = conversation.created_at.slice(0, 10)
       await downloadTranscript(
@@ -323,8 +408,17 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
           caseTitle,
           startedAt: conversation.created_at,
           messages,
+          nextSteps: tasks.map((task) => ({
+            title: task.title,
+            notes: task.notes,
+            due: task.due_date ? formatDay(task.due_date) : null,
+            done: task.done,
+          })),
           formatDateTime: (iso) => dateTimeFormat.format(new Date(iso)),
           labels: {
+            nextSteps: t('transcript.nextSteps'),
+            noNextSteps: t('transcript.noNextSteps'),
+            due: (date) => t('transcript.due', { date }),
             heading: t('transcript.heading'),
             issue: t('transcript.issue'),
             started: t('transcript.started'),
@@ -344,9 +438,16 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
     setIsExporting(false)
   }
 
+  const exportLabel = isExporting ? t('transcript.preparing') : t('transcript.download')
   const exportButton = canExport && (
-    <button type="button" className="button-quiet" disabled={isExporting} onClick={exportTranscript}>
-      {isExporting ? t('transcript.preparing') : t('transcript.download')}
+    <button
+      type="button"
+      className="button button--secondary export-button"
+      disabled={isExporting}
+      onClick={exportTranscript}
+    >
+      <Icon name="download" />
+      {exportLabel}
     </button>
   )
   const exportError = exportFailed && (
@@ -368,10 +469,8 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
     }
   }
 
+  // Closing is rare and can't be undone, so it's the one action kept in the menu.
   const menuItems = [
-    ...(canExport
-      ? [{ label: isExporting ? t('transcript.preparing') : t('transcript.download'), onSelect: () => void exportTranscript(), disabled: isExporting }]
-      : []),
     { label: t('chat.closeChat'), onSelect: () => setIsConfirmingClose(true), disabled: isCaseBusy, danger: true },
   ]
 
@@ -381,16 +480,16 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
   }
 
   return (
-    <div className="chat">
-      <div className="chat-card">
+    <div ref={chatRef} className="chat">
+      <div ref={cardRef} className="chat-card">
       <div className="chat-card__head">
         <div className="chat-card__heading">
           <h2>{t('chat.heading')}</h2>
           {conversation && messages.length > 0 && <span className="chat-card__date">{sessionDate}</span>}
         </div>
-        {canEdit && conversationId !== null && !isClosed && (
+        {canEdit && conversationId !== null && (
           <div className="chat-card__actions">
-            {messages.length > 0 && (
+            {!isClosed && messages.length > 0 && (
               <button
                 type="button"
                 className="button button--secondary button--small"
@@ -401,7 +500,21 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
                 {t('chat.newChatShort')}
               </button>
             )}
-            <ActionMenu label={t('chat.moreActions')} items={menuItems} />
+            {/* In the header, which stays in view, so it's found without scrolling. Closed
+                chats keep it here too, as well as in the bar at the end. */}
+            {canExport && (
+              <button
+                type="button"
+                className="button button--secondary button--small export-button chat-card__export"
+                disabled={isExporting}
+                onClick={exportTranscript}
+                title={exportLabel}
+              >
+                <Icon name="download" />
+                <span className="chat-card__export-label">{exportLabel}</span>
+              </button>
+            )}
+            {!isClosed && <ActionMenu label={t('chat.moreActions')} items={menuItems} />}
             <ConfirmDialog
               open={isConfirmingClose}
               onClose={() => setIsConfirmingClose(false)}
@@ -434,6 +547,8 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
           onConfirm={confirmNewChat}
         />
       )}
+      {/* Only this part scrolls; the header and the message box stay in place. */}
+      <div ref={scrollRef} className="chat__scroll" onScroll={updateFollow}>
       <div className="chat__log" role="log" aria-busy={isSendingHere} aria-label={t('chat.logLabel')}>
         {isLoading && <p role="status">{t('common.loading')}</p>}
         {isError && (
@@ -479,7 +594,7 @@ function ChatPanel({ caseId, caseTitle, canEdit }: ChatPanelProps) {
           <CrisisBanner onDismiss={() => setDismissedCrisisId(latestCrisisId)} />
         </div>
       )}
-      <div ref={endRef} className="chat__end" />
+      </div>
 
       {canEdit && isClosed ? (
         // Replaces the message box, as other chat apps do for ended conversations.

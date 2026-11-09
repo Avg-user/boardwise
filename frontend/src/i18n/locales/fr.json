@@ -206,7 +206,8 @@
     "tabs": {
       "chat": "Discussion",
       "timeline": "Chronologie",
-      "steps": "Prochaines étapes"
+      "steps": "Prochaines étapes",
+      "lawyers": "Avocats"
     },
     "backPartner": "Retour au tableau de bord",
     "openBadge": "Ouvert",
@@ -270,7 +271,10 @@
     "closedElsewhere": "Cette discussion a été fermée, peut-être sur un autre appareil. Votre message est toujours dans la zone de texte : envoyez-le pour commencer une nouvelle discussion."
   },
   "transcript": {
-    "download": "Télécharger la transcription",
+    "download": "Télécharger en PDF",
+    "nextSteps": "Prochaines étapes pour ce dossier",
+    "noNextSteps": "Aucune prochaine étape enregistrée pour ce dossier pour l'instant.",
+    "due": "échéance : {{date}}",
     "preparing": "Préparation…",
     "failed": "La transcription n'a pas pu être créée. Réessayez.",
     "heading": "Transcription de la discussion",

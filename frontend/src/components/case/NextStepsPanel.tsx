@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createTask, listTasks, updateTask } from '../../api/tasks.ts'
+import { createTask, listTasks, tasksQueryKey, updateTask } from '../../api/tasks.ts'
 import type { Task } from '../../api/types.ts'
 import { useConversation } from './useConversation.ts'
 
@@ -16,7 +16,7 @@ type NextStepsPanelProps = {
 function NextStepsPanel({ caseId, canEdit }: NextStepsPanelProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const queryKey = ['cases', caseId, 'tasks']
+  const queryKey = tasksQueryKey(caseId)
   const { messages } = useConversation(caseId)
   const [newStep, setNewStep] = useState('')
   // For the slide animation: each row's element, and where each row sat last time.
