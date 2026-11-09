@@ -133,6 +133,7 @@ All endpoints require authentication.
 - Workers browse `GET /api/lawfirms/` (listed firms only; filters `area`, `language`, `free_consultation`, `q`). The public serializer never includes the law society number.
 - A worker asks to connect: `POST /api/cases/<case_pk>/matches/ {firm, message}` (case owner only; listed firms only; one open request per case and firm). `DELETE` withdraws a pending request or ends an accepted one, which revokes the share.
 - The firm sees `GET /api/lawfirms/me/requests/`: only the note and status. `case_id`/`case_title` appear only while an accepted share is active. `POST .../requests/<id>/accept/` creates the `CaseShare` (verified firms only); `decline/` doesn't.
+- A firm's page also offers a first email the worker can send themselves (`components/lawfirms/FirmEmailTemplate.tsx`, text in `firmEmail.*`): availability, free consultation (worded from the firm's profile), fees, language, employer name for the conflict check, key dates and safe contact details. Editable and never saved; "Open in my email app" (mailto, when the firm lists an email) or Copy. No case data is filled in.
 - **A firm must never see case data before accepting.** Revoking a share through `shares/` also ends its match. Only the owner can list a case's matches, so firms never see which other firms were asked.
 
 ### Chat

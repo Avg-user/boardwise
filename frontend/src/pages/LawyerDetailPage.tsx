@@ -6,6 +6,7 @@ import { listCases } from '../api/cases.ts'
 import { ApiError } from '../api/client.ts'
 import { getFirm, listCaseMatches, requestMatch } from '../api/lawfirms.ts'
 import Icon from '../components/Icon.tsx'
+import FirmEmailTemplate from '../components/lawfirms/FirmEmailTemplate.tsx'
 import { feeLines } from '../components/lawfirms/format.ts'
 import NotFoundPage from './NotFoundPage.tsx'
 
@@ -137,6 +138,8 @@ function LawyerDetailPage() {
               )}
             </dl>
           </section>
+
+          <FirmEmailTemplate firm={firm} />
         </div>
 
         <aside className="connect-card" aria-labelledby="connect-title">

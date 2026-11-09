@@ -624,5 +624,24 @@
     "send": "Send anonymously",
     "sent": "Report sent. Thank you.",
     "limit": "You've sent the most reports allowed this month. You can send more next month."
+  },
+  "firmEmail": {
+    "title": "Write to this firm yourself",
+    "intro": "Prefer to email? Here's a first email with what firms usually ask about. Edit it as you like. Nothing you type here is saved.",
+    "tipBrackets": "Replace the parts in [square brackets], and delete any you'd rather not share yet.",
+    "tipPrivate": "Keep it short. Don't attach documents or the full story until you've spoken and the firm has agreed to help.",
+    "tipConflict": "Firms ask for your employer's name first to check they don't already work for them (a \"conflict check\").",
+    "subjectLabel": "Subject",
+    "bodyLabel": "Email",
+    "subject": "New client inquiry: workplace issue",
+    "body": "Hello {{firm}} team,\n\nI found your firm on Boardwise and I'm looking for help with a workplace issue in [city, province].\n\nIn short: [one or two sentences about what's happening, for example \"My manager has made repeated comments about my appearance, and I was moved off a project after I reported it.\"]\n\nBefore we go further, I have a few questions:\n\n1. Are you taking on new clients for this kind of matter?\n2. {{consultation}}\n3. How do you charge (hourly, flat fee or contingency), and roughly what would a first step cost?\n4. Could we talk in [English / French / another language]?\n\nFor your conflict check, my employer is [employer name].\n\nDates that may matter: [for example \"the last incident was on May 12\" or \"I was let go on June 3\"].\n\nThe best way to reach me is [personal phone or personal email], ideally [days and times]. Please don't contact me through my work email or work phone.\n\nThank you,\n[Your name]",
+    "consultationFree": "Your profile mentions a free first consultation. How do I book it, and how long is it?",
+    "consultationAsk": "Do you offer a free or low-cost first consultation? If not, what does a first meeting cost?",
+    "open": "Open in my email app",
+    "copy": "Copy email",
+    "copied": "Copied",
+    "copyFailed": "Couldn't copy automatically. Select the text and copy it yourself.",
+    "sendTo": "It opens addressed to {{email}}. Send it from your personal email.",
+    "noEmail": "This firm hasn't listed an email. Copy the text and send it through their website or contact form."
   }
 }
