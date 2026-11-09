@@ -2,3 +2,5 @@ faster-whisper==1.2.1
 # faster-whisper 1.2.1 passes `metadata_errors` to av.open(), which av 17+ removed.
 av==16.1.0
 websockets==17.4
+# Read-aloud voices (local neural TTS). GPL-3.0; runs only inside this service.
+piper-tts==1.8.0

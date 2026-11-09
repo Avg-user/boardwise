@@ -28,3 +28,18 @@ AI chat: set `OPENROUTER_API_KEY` in `.env`, then `POST /api/cases/<id>/conversa
 - `backend/config` — settings, urls, celery
 - `backend/apps/` — accounts, cases, documents, chat, tasks, lawfirms, hr
 - `frontend/` — React + TypeScript (TanStack Query, React Router, i18next)
+
+## References
+The assistant answers from these Alberta laws. They are official King's Printer office consolidations, stored in `backend/prompts/provinces/AB/` and loaded with `manage.py ingest_laws`. Current versions are published by [Alberta King's Printer](https://kings-printer.alberta.ca/).
+
+| Law | Citation | Consolidation | File |
+|---|---|---|---|
+| Employment Standards Code | RSA 2000, c E-9 | current as of November 26, 2025 | `Employment Standards Code.pdf` |
+| Occupational Health and Safety Act | SA 2020, c O-2.2 | text converted to Markdown | `OHS Act.md` |
+| Occupational Health and Safety Code | Alta Reg 191/2021 (amendments up to Alta Reg 210/2024) | current as of March 31, 2025 | `Occupational Health and Safety Code.pdf` |
+| Alberta Human Rights Act | RSA 2000, c A-25.5 | current as of April 1, 2023 | `Alberta Human Rights Act.pdf` |
+| Workers' Compensation Act | RSA 2000, c W-15 | current as of December 18, 2025 | `Workers Compensation Act.pdf` |
+
+`backend/prompts/provinces/AB.md` is a plain-language summary of Alberta employment standards, drawn from [alberta.ca](https://www.alberta.ca/employment-standards). Contact numbers in `backend/prompts/contacts/AB.md` were checked against official Government of Alberta pages.
+
+Boardwise provides general information, not legal advice. Laws change, so check the current consolidation.

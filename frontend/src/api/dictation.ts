@@ -54,7 +54,7 @@ export function warmDictation(): void {
 const WORKLET_URL = '/pcm-worklet.js'
 const STOP_TIMEOUT_MS = 10_000
 
-function websocketUrl(path: string, ticket: string): string {
+export function websocketUrl(path: string, ticket: string): string {
   const url = new URL(path, window.location.href)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
   url.searchParams.set('ticket', ticket)

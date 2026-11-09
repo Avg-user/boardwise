@@ -1,9 +1,13 @@
-// Reads assistant replies aloud with the browser's own speech synthesis. Only voices that
-// run on the device are used: some browser voices (Chrome's "Google …" ones) send the text
-// to a server, and these conversations must not leave the person's device that way. When
-// there's no on-device voice for the language, the Listen button stays hidden.
+// Reads assistant replies aloud. English uses the speech service's own neural voice (Piper,
+// in our container: the text doesn't leave our servers) and highlights each sentence as it's
+// read. Otherwise, or when that service is off, the browser's speech synthesis is used, with
+// on-device voices only: some browser voices (Chrome's "Google …" ones) send the text to a
+// third-party server. With neither, the Listen button stays hidden.
 import { useSyncExternalStore } from 'react'
+import { streamSpeech, type SpeechStream } from '../../api/voice.ts'
 import { markdownToBlocks, runsText } from '../../export/markdownText.ts'
+import { pcmToFloat, voiceScore } from './readAloudText.ts'
+import { clearHighlight, highlightSentence } from './readingHighlight.ts'
 
 const synth: SpeechSynthesis | null =
   typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null
@@ -51,17 +55,15 @@ function getVoices(): SpeechSynthesisVoice[] {
   return voices
 }
 
-/** The best on-device voice for a language such as "en" or "fr", preferring Canadian ones. */
+/** The best on-device voice for a language such as "en" or "fr". */
 function pickVoice(all: SpeechSynthesisVoice[], language: string): SpeechSynthesisVoice | null {
   const base = language.toLowerCase().split('-')[0]
   const local = all.filter(
     (voice) => voice.localService && voice.lang.toLowerCase().replace('_', '-').split('-')[0] === base,
   )
-  return (
-    local.find((voice) => voice.lang.toLowerCase().replace('_', '-') === `${base}-ca`) ??
-    local.find((voice) => voice.default) ??
-    local[0] ??
-    null
+  return local.reduce<SpeechSynthesisVoice | null>(
+    (best, voice) => (!best || voiceScore(voice, base) > voiceScore(best, base) ? voice : best),
+    null,
   )
 }
 
@@ -99,6 +101,16 @@ function subscribeReading(listener: () => void) {
 function stateOf(id: number): ReadingState {
   if (speakingId === id) return 'speaking'
   return bookmarks.has(id) ? 'paused' : 'idle'
+}
+
+/** The service voice is English only; it's switched off for the page after it fails once. */
+let serverVoiceOff = false
+const serverVoiceFor = (language: string | undefined) =>
+  !serverVoiceOff && (language ?? '').toLowerCase().split('-')[0] === 'en'
+
+/** Whether the speech service's voice will be tried for this language. */
+export function useServerVoice(language: string | undefined): boolean {
+  return useSyncExternalStore(subscribeReading, () => serverVoiceFor(language), () => false)
 }
 
 /** Whether this reply is being read, paused part-way, or neither. */
@@ -147,13 +159,38 @@ export function speechChunks(markdown: string): string[] {
   return chunks
 }
 
+// What the service voice is playing, so it can be stopped.
+let audioContext: AudioContext | null = null
+let stream: SpeechStream | null = null
+let sources: AudioBufferSourceNode[] = []
+let timers: number[] = []
+
+/** Stops whatever is sounding, from either engine, and clears the highlight. */
+function silence() {
+  stream?.cancel()
+  stream = null
+  sources.forEach((source) => {
+    source.onended = null
+    try {
+      source.stop()
+    } catch {
+      // never started
+    }
+  })
+  sources = []
+  timers.forEach((id) => window.clearTimeout(id))
+  timers = []
+  synth?.cancel()
+  clearHighlight()
+}
+
 /** Pauses the reply being read, keeping its place. */
 export function pauseSpeaking() {
   if (speakingId === null) return
   bookmarks.set(speakingId, currentIndex)
   speakingId = null
   session++
-  synth?.cancel()
+  silence()
   notify()
 }
 
@@ -163,21 +200,23 @@ export function resetSpeaking() {
   speakingId = null
   bookmarks.clear()
   session++
-  synth?.cancel()
+  silence()
   if (wasActive) notify()
 }
 
+type SpeakOptions = { caseId: number; language: string; voice: SpeechSynthesisVoice | null }
+
 /** Reads a reply aloud, from where it was paused if it was. */
-export function speak(id: number, markdown: string, voice: SpeechSynthesisVoice) {
-  if (!synth) return
+export function speak(id: number, markdown: string, { caseId, language, voice }: SpeakOptions) {
   // Starting this reply pauses any other, so that one can be resumed later too.
   if (speakingId !== null && speakingId !== id) bookmarks.set(speakingId, currentIndex)
   const chunks = speechChunks(markdown)
   const from = Math.min(bookmarks.get(id) ?? 0, Math.max(chunks.length - 1, 0))
   bookmarks.delete(id)
-  synth.cancel()
+  silence()
   const mySession = ++session
-  if (chunks.length === 0) {
+  const useServer = serverVoiceFor(language)
+  if (chunks.length === 0 || (!useServer && !(voice && synth))) {
     speakingId = null
     notify()
     return
@@ -190,18 +229,189 @@ export function speak(id: number, markdown: string, voice: SpeechSynthesisVoice)
     if (session !== mySession) return
     speakingId = null
     session++
+    clearHighlight()
     notify()
   }
+  const begin = (index: number) => {
+    if (session !== mySession) return
+    currentIndex = index
+    highlightSentence(id, chunks[index])
+  }
+
+  if (useServer) speakWithService({ id, caseId, language, chunks, from, mySession, begin, finish, voice })
+  else if (voice) speakWithBrowser(chunks, from, voice, mySession, begin, finish)
+}
+
+function speakWithBrowser(
+  chunks: string[],
+  from: number,
+  voice: SpeechSynthesisVoice,
+  mySession: number,
+  begin: (index: number) => void,
+  finish: () => void,
+) {
+  if (!synth) return finish()
   chunks.slice(from).forEach((chunk, offset) => {
     const index = from + offset
     const utterance = new SpeechSynthesisUtterance(chunk)
     utterance.voice = voice
     utterance.lang = voice.lang
-    utterance.onstart = () => {
-      if (session === mySession) currentIndex = index
+    utterance.rate = 0.95 // a touch slower is easier to follow
+    utterance.onstart = () => begin(index)
+    utterance.onerror = () => {
+      if (session === mySession) finish()
     }
-    utterance.onerror = finish
     if (index === chunks.length - 1) utterance.onend = finish
     synth.speak(utterance)
   })
+}
+
+type ServiceRun = {
+  id: number
+  caseId: number
+  language: string
+  chunks: string[]
+  from: number
+  mySession: number
+  begin: (index: number) => void
+  finish: () => void
+  voice: SpeechSynthesisVoice | null
+}
+
+/**
+ * Plays the service's audio sentence by sentence, back to back, on one AudioContext. The first
+ * sentences come from the head start when there is one; the rest are asked for after them.
+ */
+function speakWithService({ id, caseId, language, chunks, from, mySession, begin, finish, voice }: ServiceRun) {
+  // Created (or resumed) during the click, so the browser lets it play.
+  audioContext ??= new AudioContext()
+  const context = audioContext
+  void context.resume()
+  let nextStart = 0
+  let playing = 0
+  let received = 0
+  let allSent = false
+
+  // The service is off or failed before any audio: use the browser's voice instead, and stop
+  // trying the service for the rest of the page's life.
+  const fallBack = (start: number) => {
+    if (session !== mySession) return
+    serverVoiceOff = true
+    stream = null
+    if (voice && synth) speakWithBrowser(chunks, start, voice, mySession, begin, finish)
+    else finish()
+    notify()
+  }
+  const sent = () => {
+    allSent = true
+    stream = null
+    if (playing === 0) finish()
+  }
+  const play = (index: number, sampleRate: number, pcm: Int16Array) => {
+    if (session !== mySession || pcm.length === 0) return
+    received++
+    const buffer = context.createBuffer(1, pcm.length, sampleRate)
+    buffer.copyToChannel(pcmToFloat(pcm), 0)
+    const source = context.createBufferSource()
+    source.buffer = buffer
+    source.connect(context.destination)
+    const startAt = Math.max(context.currentTime + 0.05, nextStart)
+    nextStart = startAt + buffer.duration + 0.15 // a short pause between sentences
+    source.start(startAt)
+    sources.push(source)
+    playing++
+    timers.push(window.setTimeout(() => begin(index), (startAt - context.currentTime) * 1000))
+    source.onended = () => {
+      playing--
+      if (allSent && playing === 0) finish()
+    }
+  }
+  const streamFrom = (start: number) => {
+    if (session !== mySession) return
+    if (start >= chunks.length) return sent()
+    streamSpeech(caseId, language, chunks.slice(start), {
+      onAudio: (offset, sampleRate, pcm) => play(start + offset, sampleRate, pcm),
+      onDone: sent,
+      onError() {
+        if (received === 0) fallBack(start)
+        else sent() // play what arrived, then stop
+      },
+    }).then(
+      (started) => {
+        if (session === mySession) stream = started
+        else started.cancel()
+      },
+      () => (received === 0 ? fallBack(start) : sent()),
+    )
+  }
+
+  const head = headStartFor(id, chunks)
+  if (!head || from >= head.chunks.length) return streamFrom(from)
+  // Play the head start as it's ready (usually all of it already is), then ask for the rest.
+  let cursor = from
+  const drain = () => {
+    if (session !== mySession) return head.listeners.delete(drain)
+    for (let audio = head.audio[cursor]; cursor < head.chunks.length && audio; audio = head.audio[cursor]) {
+      play(cursor, audio.rate, audio.pcm)
+      cursor++
+    }
+    if (cursor < head.chunks.length && !head.settled) return
+    head.listeners.delete(drain)
+    streamFrom(cursor)
+  }
+  head.listeners.add(drain)
+  drain()
+}
+
+// --- Head start -----------------------------------------------------------------------------
+// When a reply arrives, its first few sentences are made straight away, so Listen starts at
+// once; the rest is made while those play. Only in this page's memory, never stored, and only
+// for the last few replies.
+
+const HEAD_START_SENTENCES = 3
+const HEAD_START_KEEP = 5
+
+type HeadStart = {
+  chunks: string[]
+  audio: ({ rate: number; pcm: Int16Array } | undefined)[]
+  /** Finished, or gave up: nothing more will arrive. */
+  settled: boolean
+  listeners: Set<() => void>
+}
+
+const headStarts = new Map<number, HeadStart>()
+let preparing = false
+
+/** The head start for this reply, if it was made from the same sentences. */
+function headStartFor(id: number, chunks: string[]): HeadStart | null {
+  const head = headStarts.get(id)
+  return head && head.chunks.every((chunk, index) => chunk === chunks[index]) ? head : null
+}
+
+/** Makes the first sentences of a new reply ahead of Listen. One at a time; skipped when busy. */
+export function prepareSpeech(id: number, markdown: string, caseId: number, language: string) {
+  if (!serverVoiceFor(language) || preparing || headStarts.has(id)) return
+  const chunks = speechChunks(markdown).slice(0, HEAD_START_SENTENCES)
+  if (chunks.length === 0) return
+  const head: HeadStart = { chunks, audio: [], settled: false, listeners: new Set() }
+  headStarts.set(id, head)
+  while (headStarts.size > HEAD_START_KEEP) headStarts.delete(headStarts.keys().next().value!)
+  preparing = true
+  const changed = () => [...head.listeners].forEach((listener) => listener())
+  const settle = () => {
+    if (head.settled) return
+    head.settled = true
+    preparing = false
+    changed()
+  }
+  streamSpeech(caseId, language, chunks, {
+    onAudio(index, rate, pcm) {
+      head.audio[index] = { rate, pcm }
+      changed()
+    },
+    onDone: settle,
+    onError: settle,
+  }).then((started) => {
+    if (head.settled) started.cancel()
+  }, settle)
 }

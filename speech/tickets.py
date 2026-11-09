@@ -1,9 +1,10 @@
-"""Dictation tickets: short-lived, single-use, signed by Django with SPEECH_TICKET_SECRET.
+"""Speech tickets: short-lived, single-use, signed by Django with SPEECH_TICKET_SECRET.
 
 A ticket proves that Django checked the user owns the case. It carries IDs only.
 
 Format: base64url(JSON payload) + "." + base64url(HMAC-SHA256(secret, first part))
-Payload: {"u": user id, "c": case id, "lang": "en" | "fr" | null, "exp": unix seconds, "n": nonce}
+Payload: {"u": user id, "c": case id, "lang": "en" | "fr" | null, "p": "dictate" | "read", "exp": unix seconds, "n": nonce}
+A missing "p" means "dictate". A ticket only opens the endpoint for its purpose.
 
 Django creates them in backend/apps/speech/tickets.py. Keep the two files in sync.
 """
@@ -16,6 +17,7 @@ import time
 from dataclasses import dataclass
 
 LANGUAGES = {"en", "fr"}
+PURPOSES = {"dictate", "read"}
 
 
 class TicketError(Exception):
@@ -27,6 +29,7 @@ class Claims:
     user_id: int
     case_id: int
     language: str | None
+    purpose: str = "dictate"
 
 
 def _b64decode(text: str) -> bytes:
@@ -50,6 +53,9 @@ class TicketVerifier:
             payload = json.loads(_b64decode(body))
             user_id, case_id = int(payload["u"]), int(payload["c"])
             expires, nonce = float(payload["exp"]), str(payload["n"])
+            purpose = payload.get("p", "dictate")
+            if purpose not in PURPOSES:
+                raise TicketError("unknown purpose")
         except TicketError:
             raise
         except (ValueError, KeyError, TypeError, UnicodeError, binascii.Error) as exc:
@@ -64,4 +70,4 @@ class TicketVerifier:
         self._used[nonce] = expires
 
         language = payload.get("lang")
-        return Claims(user_id, case_id, language if language in LANGUAGES else None)
+        return Claims(user_id, case_id, language if language in LANGUAGES else None, purpose)

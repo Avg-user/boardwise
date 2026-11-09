@@ -25,10 +25,12 @@ from tickets import TicketError, TicketVerifier
 SECRET = "test-secret"
 
 
-def make_ticket(user_id=1, case_id=2, lang="en", ttl=60, nonce=None, secret=SECRET, now=None):
-    """Same format as backend/apps/speech/tickets.py."""
+def make_ticket(user_id=1, case_id=2, lang="en", ttl=60, nonce=None, secret=SECRET, now=None, purpose=None):
+    """Same format as backend/apps/speech/tickets.py. No purpose = an old-style dictation ticket."""
     payload = {"u": user_id, "c": case_id, "lang": lang, "exp": int((now or time.time()) + ttl),
                "n": nonce or base64.urlsafe_b64encode(np.random.bytes(12)).decode()}
+    if purpose:
+        payload["p"] = purpose
     body = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
     sig = hmac.new(secret.encode(), body.encode(), hashlib.sha256).digest()
     return body + "." + base64.urlsafe_b64encode(sig).decode().rstrip("=")
@@ -46,6 +48,17 @@ class FakeModel:
         segments = [SimpleNamespace(start=float(i), end=float(i + 1), text=f" word{self.calls}-{i}",
                                     no_speech_prob=0.0) for i in range(seconds)]
         return iter(segments), None
+
+
+class FakeSpeaker:
+    """100 samples of silence per character, at 22050 Hz."""
+
+    def __init__(self):
+        self.spoken = []
+
+    def speak(self, text):
+        self.spoken.append(text)
+        return 22050, np.zeros(100 * len(text), dtype="<i2").tobytes()
 
 
 def pcm(seconds: float) -> bytes:
@@ -73,6 +86,12 @@ class TicketTests(unittest.TestCase):
         verifier.verify(ticket)
         with self.assertRaises(TicketError):
             verifier.verify(ticket)
+
+    def test_purpose_defaults_to_dictate(self):
+        self.assertEqual(TicketVerifier(SECRET).verify(make_ticket()).purpose, "dictate")
+        self.assertEqual(TicketVerifier(SECRET).verify(make_ticket(purpose="read")).purpose, "read")
+        with self.assertRaises(TicketError):
+            TicketVerifier(SECRET).verify(make_ticket(purpose="other"))
 
     def test_no_secret_refuses_everything(self):
         with self.assertRaises(TicketError):
@@ -125,8 +144,11 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
 class ServerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.model = FakeModel()
-        self.speech = SpeechServer(Config(secret=SECRET, max_sessions=1, max_seconds=5),
-                                   loader=lambda name, threads: self.model)
+        self.speaker = FakeSpeaker()
+        self.speech = SpeechServer(Config(secret=SECRET, max_sessions=1, max_seconds=5, tts_max_sessions=1,
+                                          tts_max_chars=100, tts_max_chunk_chars=40),
+                                   loader=lambda name, threads: self.model,
+                                   tts_loader=lambda name, threads: self.speaker)
         self.server = await serve(self.speech.handler, "127.0.0.1", 0,
                                   process_request=self.speech.process_request, max_size=MAX_FRAME_BYTES)
         self.port = self.server.sockets[0].getsockname()[1]
@@ -135,8 +157,20 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.server.close()
         await self.server.wait_closed()
 
-    def url(self, ticket):
-        return f"ws://127.0.0.1:{self.port}/ws?ticket={ticket}"
+    def url(self, ticket, path="/ws"):
+        return f"ws://127.0.0.1:{self.port}{path}?ticket={ticket}"
+
+    async def read_aloud(self, chunks, ticket=None):
+        """Send chunks to /tts and return the messages, with audio frames as their byte length."""
+        out = []
+        async with connect(self.url(ticket or make_ticket(purpose="read"), "/tts")) as ws:
+            try:
+                await ws.send(json.dumps({"type": "speak", "chunks": chunks}))
+                async for raw in ws:
+                    out.append(len(raw) if isinstance(raw, bytes) else json.loads(raw))
+            except ConnectionClosed:
+                pass
+        return out
 
     async def messages(self, ws):
         out = []
@@ -209,6 +243,39 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
                 await ws.send(pcm(1.0))
             received = await self.messages(ws)
         self.assertEqual(received[-1], {"type": "done", "reason": "limit"})
+
+    async def test_read_aloud_sends_audio_per_chunk_in_order(self):
+        received = await self.read_aloud(["One.", "  ", "Two words."])
+        self.assertEqual(received, [
+            {"type": "audio", "index": 0, "sample_rate": 22050}, 800,   # 4 chars * 100 samples * 2 bytes
+            {"type": "audio", "index": 2, "sample_rate": 22050}, 2000,  # the blank chunk is skipped
+            {"type": "done"},
+        ])
+        self.assertEqual(self.speaker.spoken, ["One.", "Two words."])
+        self.assertFalse(self.speech.models.loaded)  # whisper isn't loaded for read-aloud
+
+    async def test_read_aloud_needs_a_read_ticket(self):
+        async with connect(self.url(make_ticket(), "/tts")) as ws:  # a dictation ticket on /tts
+            self.assertEqual(await self.messages(ws), [{"type": "error", "code": "unauthorized"}])
+        async with connect(self.url(make_ticket(purpose="read"))) as ws:  # a read ticket on /ws
+            self.assertEqual(await self.messages(ws), [{"type": "error", "code": "unauthorized"}])
+        self.assertEqual(self.speaker.spoken, [])
+
+    async def test_read_aloud_limits(self):
+        self.assertEqual(await self.read_aloud(["x" * 41]), [{"type": "error", "code": "too_long"}])
+        self.assertEqual(await self.read_aloud(["x" * 40] * 3), [{"type": "error", "code": "too_long"}])
+        self.assertEqual(await self.read_aloud([]), [{"type": "error", "code": "bad_request"}])
+        self.assertEqual(await self.read_aloud("not a list"), [{"type": "error", "code": "bad_request"}])
+
+    async def test_read_aloud_never_logs_text(self):
+        with self.assertLogs("speech", level="INFO") as logs:
+            await self.read_aloud(["My boss yelled at me."])
+            for _ in range(50):  # the closing log line comes just after the socket closes
+                if any("ended" in line for line in logs.output):
+                    break
+                await asyncio.sleep(0.01)
+        self.assertTrue(any("ended: 1 of 1 chunks" in line for line in logs.output), logs.output)
+        self.assertFalse(any("yelled" in line for line in logs.output))
 
     async def test_unknown_path_is_404(self):
         with self.assertRaises(urllib.error.HTTPError) as caught:

@@ -17,7 +17,7 @@ The data is highly sensitive. Treat privacy as a hard requirement, not a feature
 - **Backend**: Django 6 + Django REST Framework, Channels (WebSocket streaming), Celery + Redis (background jobs), PostgreSQL.
 - **Frontend**: React + Vite + TypeScript, TanStack Query, React Router, i18next.
 - **AI**: OpenRouter through the `openai` SDK. All LLM calls go through `backend/apps/chat/llm.py`.
-- **Local services**: `docker-compose.yml` runs Postgres 17 with pgvector (`pgvector/pgvector:pg17-trixie`), Redis 7, and `speech` (voice dictation with faster-whisper, built from `speech/`).
+- **Local services**: `docker-compose.yml` runs Postgres 17 with pgvector (`pgvector/pgvector:pg17-trixie`), Redis 7, and `speech` (voice dictation with faster-whisper and read-aloud with Piper, built from `speech/`).
 
 ## Layout
 
@@ -34,8 +34,8 @@ backend/
     lawfirms/        firm profiles, matchmaking
     hr/              companies, anonymous incident reports, dashboard aggregates, job offer review
     knowledge/       province law references for RAG: chunks, embeddings, cross-reference graph
-    speech/          dictation tickets for the speech service (no models)
-speech/              speech service (docker): WebSocket dictation with faster-whisper; streaming.py, server.py, tickets.py
+    speech/          dictation and read-aloud tickets for the speech service (no models)
+speech/              speech service (docker): WebSocket dictation (faster-whisper) and read-aloud (Piper); streaming.py, tts.py, server.py, tickets.py
 frontend/            React app; /api is proxied to Django on :8000, /speech to the speech service on :9100
 ```
 
@@ -206,6 +206,15 @@ All endpoints require authentication.
 - Resource use: idle, the container uses ~0% CPU and ~40 MB. The model loads when a chat opens (`GET /speech/warm`) or on the first session, and unloads after `SPEECH_IDLE_UNLOAD_S` (120) without sessions or warm-ups. Compose caps it at `SPEECH_CPUS` (4); `SPEECH_THREADS` (4) must match. `SPEECH_MAX_SESSIONS` (2) bounds concurrency; extra sessions get `busy`.
 - Privacy: audio and text are never stored, and transcript text is never logged (session, user and case IDs only). The model runs in the container; no audio leaves the machine. On a model load, faster-whisper only checks Hugging Face for model metadata.
 - `faster-whisper==1.2.1` needs `av==16.1.0`: av 17+ removed an argument it uses.
+
+### Read-aloud (`speech/tts.py`, `/tts`)
+- Each reply has a **Listen** button. In English it uses our own voice, Piper `en_US-ryan-medium` (a natural male voice), running in the `speech` container, so the text never leaves our servers. Other languages, or when the service is off, use the browser's on-device voices (never the online ones, which send text to a third party); `voiceScore` prefers "Natural/Enhanced" voices over the old robotic ones. With neither, the button is hidden.
+- Flow: `POST /api/cases/<case_pk>/dictation-ticket/ {language, purpose: "read"}` (owner only, like dictation) returns a ticket for `/speech/tts`. Tickets carry `p: "dictate" | "read"` and only open their own endpoint. The browser sends `{type:"speak", chunks}` (the reply's `speechChunks`), the service sends `{type:"audio", index, sample_rate}` + one binary frame of 16-bit PCM per sentence, then `done`. Errors: `unauthorized`, `busy`, `bad_request`, `too_long` (over 8000 characters, or 600 per sentence), `failed`. Closing the socket stops it.
+- The browser plays the sentences back to back on one `AudioContext` and highlights the sentence being read with the CSS Custom Highlight API (`readingHighlight.ts`, `::highlight(reading)`), matching each sentence against the rendered Markdown inside `[data-reading-id]`. Pause closes the socket and keeps the sentence bookmark; Resume sends the rest. If the service fails before any audio, the browser voice takes over for the rest of the page.
+- Head start: when a reply arrives (`chatSending.ts` → `prepareSpeech`), its first 3 sentences are made at once and kept in the page's memory (last 5 replies only, never stored), so Listen starts instantly; the rest is asked for while those play. One at a time, through the normal read ticket; if it fails or is busy, Listen streams as before. No server changes or server-side cache.
+- The voice is baked into the image at build time (`TTS_VOICE` build arg; rebuild after changing it). `ryan-high` sounds a little better but runs at about real time on CPU, so the first sentence would lag. It loads on first use and unloads when idle, like whisper. Text and audio are never stored or logged (IDs and counts only).
+- Licence: `piper-tts` is GPL-3.0. It runs only inside the speech service.
+- Env: `TTS_VOICE` (`en_US-ryan-medium`), `TTS_LENGTH_SCALE` (1.05; >1 is slower), `TTS_MAX_SESSIONS` (2), `SPEECH_TTS_URL` (Django, `/speech/tts`).
 - Env: `SPEECH_TICKET_SECRET` (Django and the container, from the root `.env`), `SPEECH_MODEL` (`base`; `tiny` is faster, `small` is too slow for live on CPU), `SPEECH_MAX_SESSIONS`, `SPEECH_IDLE_UNLOAD_S`, `DICTATION_MAX_SECONDS` (180), `SPEECH_CPUS`, `SPEECH_THREADS`, `SPEECH_TICKET_TTL` (60), `SPEECH_WS_URL` (`/speech/ws`). In production, route `/speech/` to the speech service with WebSocket upgrades and keep port 9100 private.
 
 ### Frontend look
@@ -236,7 +245,7 @@ All endpoints require authentication.
 
 ### AI
 - Call LLMs only through `apps/chat/llm.py`. Do not call OpenRouter or model providers from anywhere else, and never from the frontend.
-- Speech-to-text runs locally in the `speech` container (faster-whisper), not through `llm.py`. Never send audio to a third-party service, and never store or log audio or transcripts.
+- Speech-to-text and read-aloud run locally in the `speech` container (faster-whisper, Piper), not through `llm.py`. Never send audio or reply text to a third-party speech service, and never store or log audio, transcripts or the text being read.
 - Keep `provider.data_collection = "deny"` on every request outside local dev (controlled by `OPENROUTER_DATA_COLLECTION`).
 - The assistant answers only workplace-related questions; keep both scope layers (prompt rules + `scope.py` check) when changing prompts or models.
 - The assistant must be clearly identified as AI to users. It must not present itself as a human, and must not give legal advice; it organizes information and points people to professionals.
