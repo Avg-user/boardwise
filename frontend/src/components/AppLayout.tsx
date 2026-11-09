@@ -103,7 +103,7 @@ function AppLayout() {
         <div className="container app-header__inner">
           <Link
             className="app-brand"
-            to={user ? getHome(user) : '/login'}
+            to={user ? getHome(user) : '/'}
             aria-label={t('app.home')}
           >
             <OwlMark />

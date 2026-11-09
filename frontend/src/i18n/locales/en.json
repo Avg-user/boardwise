@@ -742,5 +742,61 @@
       "hr_one": "{{count}} HR account",
       "hr_other": "{{count}} HR accounts"
     }
+  },
+  "landing": {
+    "titleSuffix": "Support for harassment at work",
+    "titleStart": "Something wrong at work? You don't have to",
+    "titleEmphasis": "sort it out alone.",
+    "lede": "Boardwise helps you write down what happened, understand your rights at work in Alberta, and decide what to do next, at your own pace.",
+    "getStarted": "Get started",
+    "heroNote": "You don't need your real name. To leave quickly, use Quick Exit or press Esc twice.",
+    "owlHello": "Hi, I'm the Boardwise owl.",
+    "owlHelloText": "I'm an AI assistant. Tell me what's going on at work, and I'll help you put it in order.",
+    "stepsEyebrow": "How it works",
+    "stepsTitle": "Here's how I can help",
+    "steps": {
+      "talk": {
+        "title": "Tell me what happened",
+        "body": "Type or speak, in your own words. I'll help you find the words and explain your rights in plain language."
+      },
+      "timeline": {
+        "title": "I'll keep it in order",
+        "body": "Each conversation, document and note becomes a dated entry on your timeline, ready when you need it."
+      },
+      "next": {
+        "title": "We'll plan what's next",
+        "body": "We'll keep a checklist of next steps. When you're ready, find a verified law firm and message them."
+      }
+    },
+    "aiNote": "I'm an AI, not a person and not a lawyer. I give general information, not legal advice, and I'll point you to people who can help.",
+    "privacyEyebrow": "Privacy",
+    "privacyTitle": "Your story is yours",
+    "privacyDescription": "What you write here can be hard to say out loud. So I look away, and Boardwise keeps these promises.",
+    "promises": {
+      "yours": {
+        "title": "Your issues are yours.",
+        "body": "No one else sees them unless you share them, and you can stop sharing at any time."
+      },
+      "username": {
+        "title": "No real name needed.",
+        "body": "Pick any username you like."
+      },
+      "voice": {
+        "title": "Your voice stays with us.",
+        "body": "Speech is turned into text on Boardwise's own server, and recordings are never kept."
+      },
+      "exit": {
+        "title": "Leave in a second.",
+        "body": "Quick Exit closes the page and signs you out. Boardwise also locks itself if you step away."
+      }
+    },
+    "partnersEyebrow": "Partners",
+    "partnersTitle": "For law firms",
+    "firmCardTitle": "What your firm gets",
+    "firmSignIn": "Law firm sign-in",
+    "firmSignUp": "Create a law firm account",
+    "ctaTitle": "I'm here when you're ready",
+    "ctaBody": "Creating an account takes a minute. Nothing is shared with anyone unless you choose to share it.",
+    "help": "In danger? Call 911. For support any time, call or text 988."
   }
 }

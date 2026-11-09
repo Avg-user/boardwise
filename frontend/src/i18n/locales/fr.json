@@ -742,5 +742,61 @@
       "hr_one": "{{count}} compte RH",
       "hr_other": "{{count}} comptes RH"
     }
+  },
+  "landing": {
+    "titleSuffix": "Du soutien face au harcèlement au travail",
+    "titleStart": "Quelque chose ne va pas au travail? Vous n'avez pas à",
+    "titleEmphasis": "régler ça seul.",
+    "lede": "Boardwise vous aide à mettre par écrit ce qui s'est passé, à comprendre vos droits au travail en Alberta et à décider de la suite, à votre rythme.",
+    "getStarted": "Commencer",
+    "heroNote": "Vous n'avez pas besoin de votre vrai nom. Pour partir rapidement, utilisez Sortie rapide ou appuyez deux fois sur Échap.",
+    "owlHello": "Bonjour, je suis le hibou de Boardwise.",
+    "owlHelloText": "Je suis un assistant IA. Racontez-moi ce qui se passe au travail, et je vous aide à y voir clair.",
+    "stepsEyebrow": "Comment ça marche",
+    "stepsTitle": "Voici comment je peux vous aider",
+    "steps": {
+      "talk": {
+        "title": "Racontez-moi ce qui s'est passé",
+        "body": "Écrivez ou parlez, avec vos propres mots. Je vous aide à trouver les mots et j'explique vos droits simplement."
+      },
+      "timeline": {
+        "title": "Je garde tout en ordre",
+        "body": "Chaque conversation, document et note devient une entrée datée dans votre chronologie, prête quand vous en avez besoin."
+      },
+      "next": {
+        "title": "On planifie la suite",
+        "body": "On tient une liste des prochaines étapes. Quand vous êtes prêt, trouvez un cabinet vérifié et écrivez-lui."
+      }
+    },
+    "aiNote": "Je suis une IA, pas une personne ni un avocat. Je donne de l'information générale, pas des conseils juridiques, et je vous oriente vers des gens qui peuvent vous aider.",
+    "privacyEyebrow": "Confidentialité",
+    "privacyTitle": "Votre histoire vous appartient",
+    "privacyDescription": "Ce que vous écrivez ici peut être difficile à dire à voix haute. Alors je détourne le regard, et Boardwise tient ces promesses.",
+    "promises": {
+      "yours": {
+        "title": "Vos dossiers vous appartiennent.",
+        "body": "Personne d'autre ne les voit sauf si vous les partagez, et vous pouvez arrêter de les partager à tout moment."
+      },
+      "username": {
+        "title": "Pas besoin de votre vrai nom.",
+        "body": "Choisissez le nom d'utilisateur que vous voulez."
+      },
+      "voice": {
+        "title": "Votre voix reste chez nous.",
+        "body": "La parole est transformée en texte sur le serveur de Boardwise, et les enregistrements ne sont jamais conservés."
+      },
+      "exit": {
+        "title": "Partez en une seconde.",
+        "body": "Sortie rapide ferme la page et vous déconnecte. Boardwise se verrouille aussi si vous vous absentez."
+      }
+    },
+    "partnersEyebrow": "Partenaires",
+    "partnersTitle": "Pour les cabinets d'avocats",
+    "firmCardTitle": "Ce que votre cabinet obtient",
+    "firmSignIn": "Connexion des cabinets",
+    "firmSignUp": "Créer un compte de cabinet",
+    "ctaTitle": "Je suis là quand vous êtes prêt",
+    "ctaBody": "Créer un compte prend une minute. Rien n'est partagé avec qui que ce soit à moins que vous le choisissiez.",
+    "help": "En danger? Composez le 911. Pour du soutien en tout temps, appelez ou textez le 988."
   }
 }
